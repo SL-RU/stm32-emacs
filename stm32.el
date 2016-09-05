@@ -126,7 +126,7 @@
 	(when (file-exists-p pth)
 	  (progn
 	    (message pth)
-	    (gdb (concat "arm-none-eabi-gdb -i=mi --eval-command=COMMAND 'target extended-remote localhost:4242' pth"))))))))
+	    (gdb (concat "arm-none-eabi-gdb -iex \"target extended-remote localhost:4242\" -i=mi " pth))))))))
 
 (defun stm32-load-all-projects ()
   "Reads all directories from 'ede-project-directories and loads project.el"
