@@ -3,6 +3,9 @@ Required:
 2) st-link https://github.com/texane/stlink
 https://github.com/SL-RU/CubeMX2Makefile
 
+1) clone repository to /.emacs.d/stm32
+2) execute "git submodule update --init" to clone CubeMX2Makefile for emacs
+
 Commentary:
 WORK IN PROGRESS!!!111111
 1) load file
