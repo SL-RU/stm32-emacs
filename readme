@@ -1,31 +1,37 @@
+Some functions for work with stm32 arm microcontrollers in EMACS.
+
 Required:
 1) CEDET
-2) st-link https://github.com/texane/stlink
-https://github.com/SL-RU/CubeMX2Makefile
+2) python
+3) st-link https://github.com/texane/stlink
+//4) https://github.com/SL-RU/CubeMX2Makefile
 
+Install:
 1) clone repository to /.emacs.d/stm32
-2) execute "git submodule update --init" to clone CubeMX2Makefile for emacs
+2) execute "git submodule update --init" to clone CubeMX2Makefile to /.emacs.d/stm32
+3) add to your init file (require 'stm32)
 
 Commentary:
 WORK IN PROGRESS!!!111111
-1) load file
-2) Create STM32CubeMx project and generate it for SW4STM32
-3) M-x stm32-new-project RET *select CubeMX project path*
-4) open main.c
-5) C-c . C to compile
-6) connect stlink to your PC
-7) stm32-run-st-util to start gdb server
-8) start GDB debugger with stm32-start-gdb
-9) in gdb) "load" to upload file to MC and "cont" to run.
-5) good luck!
+1) Create STM32CubeMx project and generate it for SW4STM32
+2) M-x stm32-new-project RET *select CubeMX project path*
+3) open main.c
+4) C-c . C to compile
+5) connect stlink to your PC
+6) stm32-run-st-util to start gdb server
+7) start GDB debugger with stm32-start-gdb
+8) in gdb) "load" to upload file to MC and "cont" to run.For more see https://github.com/texane/stlink
+9) good luck!
+
+To load that project after restart you need to (stm32-load-project).Or you can add to your init file (stm32-load-all-projects) for automatic loading.
 
 After CubeMx project regeneration or adding new libraries or new sources you need to do stm32-generate-makefile
 
-Also add:
+For normal file & header completion you need to (global-semantic-idle-scheduler-mode 1) in your init file.
 
+
+So in init can be that:
 (require 'stm32)
 (stm32-load-all-projects)
 
 (global-semantic-idle-scheduler-mode 1)
-
-to init file for automatic loading & updating

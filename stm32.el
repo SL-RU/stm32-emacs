@@ -1,87 +1,118 @@
-;;e-mail: s.lyra@ya.ru
-;;Version: 0.0001 05/sept/16
-;;Copyright (c) 2016, Alexander Lutsai. All rights reserved.
-;;
-;;Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-;;
-;;    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-;;    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-;;
-;;THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;; stm32.el --- Support for the STM32 mircocontrollers programming
+;; 
+;; Filename: stm32.el
+;; Description: 
+;; Author: Alexander Lutsai <s.lyra@ya.ru>
+;; Maintainer: 
+;; Created: 05 Sep 2016
+;; Version: 0.01
+;; Package-Requires: ()
+;; Last-Updated: 11 Sep 2016
+;;           By: Alexander Lutsai
+;;     Update #: 0
+;; URL: 
+;; Doc URL: 
+;; Keywords: 
+;; Compatibility: 
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 
+;;; Commentary: 
 ;;
 ;; Required:
 ;; 1) CEDET
-;; 2) st-link https://github.com/texane/stlink
+;; 2) python
+;; 3) st-link https://github.com/texane/stlink
+;; 4) https://github.com/SL-RU/CubeMX2Makefile
 ;;
-;;
-;; Commentary:
-;; WORK IN PROGRESS!!!111111
-;; 1) load file
-;; 2) Create STM32CubeMx project and generate it for SW4STM32
+;; 1) (require 'stm32)
+;; 2) Create STM32CubeMx project and generate it for SW4STM32 toolchain
 ;; 3) M-x stm32-new-project RET *select CubeMX project path*
 ;; 4) open main.c
 ;; 5) C-c . C to compile
 ;; 6) connect stlink to your PC
 ;; 7) stm32-run-st-util to start gdb server
 ;; 8) start GDB debugger with stm32-start-gdb
-;; 9) in gdb) "load" to upload file to MC and "cont" to run.
+;; 9) in gdb) "load" to upload file to MC and "cont" to run.For more see https://github.com/texane/stlink
 ;; 5) good luck!
 ;;
+;; To load that project after restart you need to (stm32-load-project).Or you can add to your init file (stm32-load-all-projects) for automatic loading.
+;;
+;; For normal file & header completion you need to (global-semantic-idle-scheduler-mode 1) in your init file.
+;;
 ;; After CubeMx project regeneration or adding new libraries or new sources you need to do stm32-generate-makefile
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
-
+;;; Change Log:
+;; 
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or (at
+;; your option) any later version.
+;; 
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;; 
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 
 ;;; Code:
 
-(defvar *stm32-st-util* "sudo st-util" "command to execute st-util")
-(defvar *stm32-templates* `("CubeMX2Makefile.py"
-			  "CubeMX2Makefile.tpl"
-			  "CubeMX2project.tpl") "command to execute st-util")
 
+(defvar *stm32-st-util* "sudo st-util" "Command to execute st-util.")
+(defvar *stm32-template-folder* "CubeMX2Makefile/CubeMX2Makefile.py" "Project's relative directory with scripts for generating makefiles.")
+(defvar *stm32-template-script* "CubeMX2Makefile.py" "Name of script for generating makefiles.")
+(defvar *stm32-template* (concat user-emacs-directory "stm32/CubeMX2Makefile") "Directory with scripts for generating makefiles.")
+(defvar *stm32-gdb-start* "arm-none-eabi-gdb -iex \"target extended-remote localhost:4242\" -i=mi " "Command to run gdb for gud.")
 
-(defun my-get-project-root-dir ()
-  "Return path of current project"
-  (interactive)
+(defun stm32-get-project ()
+  "Return ede project for stm32-get-project-root-dir & stm32-get-project-name."
   (let* ((fname (or (buffer-file-name (current-buffer)) default-directory))
 	 (current-dir (file-name-directory fname))
          (prj (ede-current-project current-dir)))
     (if (null prj)
-	(progn (message "buffer has no project")
-	       nil)
-      (progn (message (concat "Project dir: " (ede-project-root-directory prj)))
-	     (ede-project-root-directory prj)))))
+	(user-error "buffer has no project")
+      prj)))
 
-(defun my-get-project-name ()
-  "Return path of current project"
-  (interactive)
-  (let* ((fname (or (buffer-file-name (current-buffer)) default-directory))
-	 (current-dir (file-name-directory fname))
-         (prj (ede-current-project current-dir)))
-    (if (null prj)
-	(progn (message "buffer has no project")
-	       nil)
-      (progn (message (concat "Project name: " (ede-name prj)))
-	     (ede-name prj)))))
+(defun stm32-get-project-root-dir ()
+  "Return path of current project."
+  (let* ((prj (stm32-get-project))
+	(dir (ede-project-root-directory prj)))
+    (message (concat "Project dir: " dir))
+    dir))
+
+(defun stm32-get-project-name ()
+  "Return path of current project."
+  (let* ((prj (stm32-get-project))
+	 (name (ede-name prj)))
+    (message (concat "Project name: " name))
+    name))
 
 (defun stm32-generate-makefile (&optional path)
-  "Generate or regenerate Makefile from CubeMX generated code"
+  "Generate or regenerate Makefile from CubeMX generated code.PATH is path to project folder."
   (interactive)
-  (let ((dir (if path
-		 path
-	       (my-get-project-root-dir))))
+  (let ((dir (or path (stm32-get-project-root-dir))))
     (when dir
-      (let ((pth (concat dir "CubeMX2Makefile/CubeMX2Makefile.py")))
+      (let ((pth (concat dir *stm32-template-folder* "/" *stm32-template-script*)))
 	(when (file-exists-p pth)
-	  (progn	   
-	    (message (shell-command-to-string (concat "/usr/bin/python " pth " " dir)))
+	    (message (shell-command-to-string (concat "python " pth " " dir)))
 	    (message "ok")
-	    (my-load-project dir)))))))
+	    (stm32-load-project dir))))))
 
-(defun my-load-project (&optional path)
-   "Load project.el of current project"
+(defun stm32-load-project (&optional path)
+   "Load project.el of current project.PATH is path to project folder."
    (interactive)
    (let ((dir (if path
 		  path
-		(my-get-project-root-dir))))
+		(stm32-get-project-root-dir))))
     (when dir
       (let ((pth (concat dir "/project.el")))
 	(message pth)
@@ -92,24 +123,24 @@
 	    (message (concat pth " loaded"))))))))
 
 (defun stm32-new-project ()
-  "Create new stm32  project from existing code"
+  "Create new stm32  project from existing code."
   (interactive)
   (let ((fil (read-directory-name "Select STM32CubeMx directory: ")))
     (when (file-exists-p fil)
       (when (yes-or-no-p (concat "Create project in " fil " ?"))
 	(progn
-	  (message "copying CubeMX2Makefile")
-	  (copy-directory (concat user-emacs-directory "stm32/CubeMX2Makefile")
-			  (concat fil "/CubeMX2Makefile"))
-	  (message "Add to ede projects")
+	  (message (concat "copying " *stm32-template-folder*))
+	  (copy-directory (concat user-emacs-directory *stm32-template*)
+			  (concat fil "/" *stm32-template-folder*))
+	  (message "Add to ede projects custom")
 	  (ede-check-project-directory fil)
 	  (message "First generate")
 	  (stm32-generate-makefile fil)
 	  (message "done")
-	  (my-load-project fil))))))
+	  (stm32-load-project fil))))))
 
 (defun stm32-run-st-util ()
-  "Run st-util gdb server"
+  "Run st-util gdb server."
   (interactive)
   (with-temp-buffer "*st-util*"
 		    (async-shell-command *stm32-st-util*
@@ -117,16 +148,16 @@
 					 "*Messages*")
 		    (pop-to-buffer "*st-util*")))
 (defun stm32-start-gdb ()
-  "Strart gud arm-none-eabi-gdb and connect to st-util"
+  "Strart gud arm-none-eabi-gdb and connect to st-util."
   (interactive)
-  (let ((dir (my-get-project-root-dir))
-	(name (my-get-project-name)))
+  (let ((dir (stm32-get-project-root-dir))
+	(name (stm32-get-project-name)))
     (when dir
       (let ((pth (concat dir "build/" name ".elf")))
 	(when (file-exists-p pth)
 	  (progn
 	    (message pth)
-	    (gdb (concat "arm-none-eabi-gdb -iex \"target extended-remote localhost:4242\" -i=mi " pth))))))))
+	    (gdb (concat *stm32-gdb-start* pth))))))))
 
 (defun stm32-load-all-projects ()
   "Reads all directories from 'ede-project-directories and loads project.el"
@@ -138,8 +169,9 @@
       (when (listp ede-project-directories)
 	(dolist (x ede-project-directories)
 	  (when (file-exists-p (concat x "/project.el"))
-	    (my-load-project x))))))
+	    (stm32-load-project x))))))
 
 (provide 'stm32)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; stm32.el ends here
