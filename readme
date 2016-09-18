@@ -1,5 +1,7 @@
 Some functions for work with stm32 arm microcontrollers in EMACS.
 
+Video of work: https://youtu.be/M7RBQsq5_lc
+
 Required:
 1) CEDET
 2) python

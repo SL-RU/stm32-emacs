@@ -67,11 +67,12 @@
 ;;; Code:
 
 
-(defvar *stm32-st-util* "sudo st-util" "Command to execute st-util.")
-(defvar *stm32-template-folder* "CubeMX2Makefile/CubeMX2Makefile.py" "Project's relative directory with scripts for generating makefiles.")
+(defvar *stm32-st-util* "sudo /home/lyra/prg/stlink/build/st-util" "Command to execute st-util.")
+(defvar *stm32-template-folder* "CubeMX2Makefile" "Project's relative directory with scripts for generating makefiles.")
 (defvar *stm32-template-script* "CubeMX2Makefile.py" "Name of script for generating makefiles.")
 (defvar *stm32-template* (concat user-emacs-directory "stm32/CubeMX2Makefile") "Directory with scripts for generating makefiles.")
 (defvar *stm32-gdb-start* "arm-none-eabi-gdb -iex \"target extended-remote localhost:4242\" -i=mi " "Command to run gdb for gud.")
+(defvar *stm32-cubemx* "~/prg/STM32CubeMX/STM32CubeMX" "path to stm32CubeMx binary")
 
 (defun stm32-get-project ()
   "Return ede project for stm32-get-project-root-dir & stm32-get-project-name."
@@ -130,7 +131,7 @@
       (when (yes-or-no-p (concat "Create project in " fil " ?"))
 	(progn
 	  (message (concat "copying " *stm32-template-folder*))
-	  (copy-directory (concat user-emacs-directory *stm32-template*)
+	  (copy-directory *stm32-template*
 			  (concat fil "/" *stm32-template-folder*))
 	  (message "Add to ede projects custom")
 	  (ede-check-project-directory fil)
@@ -160,7 +161,7 @@
 	    (gdb (concat *stm32-gdb-start* pth))))))))
 
 (defun stm32-load-all-projects ()
-  "Reads all directories from 'ede-project-directories and loads project.el"
+  "Read all directories from 'ede-project-directories and load project.el."
   (interactive)
   (or (eq ede-project-directories t)
       (and (functionp ede-project-directories)
@@ -169,8 +170,22 @@
       (when (listp ede-project-directories)
 	(dolist (x ede-project-directories)
 	  (when (file-exists-p (concat x "/project.el"))
+	    (message x)
 	    (stm32-load-project x))))))
 
+(defun stm32-open-cubemx ()
+  "Open current project in cubeMX or just start application."
+  (interactive)
+  (let* ((p (ignore-errors(stm32-get-project-root-dir)))
+	     (c *stm32-cubemx*))
+	(if p
+	    (let* ((n (stm32-get-project-name))
+		   (f (concat p n ".ioc")))
+	      (if (file-exists-p f)
+		  (async-shell-command (concat c " " f))
+		(async-shell-command c)))
+	  (async-shell-command c))))
+  
 (provide 'stm32)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
