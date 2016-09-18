@@ -11,7 +11,8 @@ Required:
 Install:
 1) clone repository to /.emacs.d/stm32
 2) execute "git submodule update --init" to clone CubeMX2Makefile to /.emacs.d/stm32
-3) add to your init file (require 'stm32)
+3) Change paths to yours in stm32.el
+4) add to your init file (require 'stm32)
 
 Commentary:
 WORK IN PROGRESS!!!111111
