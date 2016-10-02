@@ -67,7 +67,7 @@
 ;;; Code:
 
 
-(defvar *stm32-st-util* "sudo /home/lyra/prg/stlink/build/st-util" "Command to execute st-util.")
+(defvar *stm32-st-util* "/home/lyra/prg/stlink/build/st-util" "Command to execute st-util.")
 (defvar *stm32-template-folder* "CubeMX2Makefile" "Project's relative directory with scripts for generating makefiles.")
 (defvar *stm32-template-script* "CubeMX2Makefile.py" "Name of script for generating makefiles.")
 (defvar *stm32-template* (concat user-emacs-directory "stm32/CubeMX2Makefile") "Directory with scripts for generating makefiles.")
@@ -143,7 +143,16 @@
 (defun stm32-run-st-util ()
   "Run st-util gdb server."
   (interactive)
+  (let ((p (get-buffer-process "*st-util*")))
+    (when p
+      (if (y-or-n-p "Kill currently running st-util?")
+	  (interrupt-process p)
+	(user-error "st-util already running!"))))
+  
+  (sleep-for 1) ;wait for st-util being killed
+  
   (with-temp-buffer "*st-util*"
+		    
 		    (async-shell-command *stm32-st-util*
 					 "*st-util*"
 					 "*Messages*")
