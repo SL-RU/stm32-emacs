@@ -67,7 +67,7 @@
 ;;; Code:
 
 
-(defvar *stm32-st-util* "/home/lyra/prg/stlink/build/st-util" "Command to execute st-util.")
+(defvar *stm32-st-util* "st-util" "Command to execute st-util.")
 (defvar *stm32-template-folder* "CubeMX2Makefile" "Project's relative directory with scripts for generating makefiles.")
 (defvar *stm32-template-script* "CubeMX2Makefile.py" "Name of script for generating makefiles.")
 (defvar *stm32-template* (concat user-emacs-directory "stm32/CubeMX2Makefile") "Directory with scripts for generating makefiles.")
@@ -104,7 +104,7 @@
     (when dir
       (let ((pth (concat dir *stm32-template-folder* "/" *stm32-template-script*)))
 	(when (file-exists-p pth)
-	    (message (shell-command-to-string (concat "python " pth " " dir)))
+	    (message (shell-command-to-string (concat "python2 " pth " " dir)))
 	    (message "ok")
 	    (stm32-load-project dir))))))
 
@@ -156,18 +156,22 @@
 		    (async-shell-command *stm32-st-util*
 					 "*st-util*"
 					 "*Messages*")
-		    (pop-to-buffer "*st-util*")))
+		    ;;(pop-to-buffer "*st-util*")
+		    ))
 (defun stm32-start-gdb ()
   "Strart gud arm-none-eabi-gdb and connect to st-util."
   (interactive)
   (let ((dir (stm32-get-project-root-dir))
-	(name (stm32-get-project-name)))
+	(name (stm32-get-project-name))
+	(p (get-buffer-process "*st-util*")))
+    (when (not p)
+      (stm32-run-st-util))
     (when dir
       (let ((pth (concat dir "build/" name ".elf")))
 	(when (file-exists-p pth)
 	  (progn
 	    (message pth)
-	    (gdb (concat *stm32-gdb-start* pth))))))))
+	    (gdb (concat *stm32-gdb-start* pth) )))))))
 
 (defun stm32-load-all-projects ()
   "Read all directories from 'ede-project-directories and load project.el."
@@ -196,6 +200,16 @@
 	  (async-shell-command c))))
   
 (provide 'stm32)
+
+(defun stm32-flash-to-mcu()
+  "Upload compiled binary to stm32 through gdb"
+  (interactive)
+  (let ((p (get-buffer-process "*st-util*")))
+    (when (not p)
+      (stm32-start-gdb))
+    (gud-stop-subjob)
+    (gud-basic-call "load")
+    (gud-basic-call "cont")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; stm32.el ends here
