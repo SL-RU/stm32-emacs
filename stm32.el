@@ -66,13 +66,42 @@
 ;; 
 ;;; Code:
 
+(defgroup stm32 nil
+  "STM32 projects integration"
+  :group 'development)
 
-(defvar *stm32-st-util* "st-util" "Command to execute st-util.")
-(defvar *stm32-template-folder* "CubeMX2Makefile" "Project's relative directory with scripts for generating makefiles.")
-(defvar *stm32-template-script* "CubeMX2Makefile.py" "Name of script for generating makefiles.")
-(defvar *stm32-template* (concat user-emacs-directory "stm32/CubeMX2Makefile") "Directory with scripts for generating makefiles.")
-(defvar *stm32-gdb-start* "arm-none-eabi-gdb -iex \"target extended-remote localhost:4242\" -i=mi " "Command to run gdb for gud.")
-(defvar *stm32-cubemx* "~/prg/STM32CubeMX/STM32CubeMX" "path to stm32CubeMx binary")
+(defcustom stm32-st-util-command "st-util"
+  "The command to use to run st-util."
+  :group 'stm32
+  :type 'string)
+
+(defcustom stm32-template-folder "CubeMX2Makefile"
+  "Project's relative directory with scripts for generating makefiles."
+  :group 'stm32
+  :type 'string)
+
+(defcustom stm32-template-script "CubeMX2Makefile.py"
+  "Name of script for generating makefiles."
+  :group 'stm32
+  :type 'string)
+
+(defcustom stm32-template (concat user-emacs-directory "stm32/CubeMX2Makefile")
+  "Directory with scripts for generating makefiles."
+  :group 'stm32
+  :type 'string)
+
+(defcustom stm32-gdb-start
+  "arm-none-eabi-gdb -iex \"target extended-remote localhost:4242\" -i=mi "
+  "Command to run gdb for gud."
+  :group 'stm32
+  :type 'string)
+
+(defcustom stm32-cubemx
+  "~/STM32CubeMX/STM32CubeMX"
+  "Path to stm32CubeMx binary."
+  :group 'stm32
+  :type 'string)
+
 
 (defun stm32-get-project ()
   "Return ede project for stm32-get-project-root-dir & stm32-get-project-name."
@@ -102,7 +131,7 @@
   (interactive)
   (let ((dir (or path (stm32-get-project-root-dir))))
     (when dir
-      (let ((pth (concat dir *stm32-template-folder* "/" *stm32-template-script*)))
+      (let ((pth (concat dir stm32-template-folder "/" stm32-template-script)))
 	(when (file-exists-p pth)
 	    (message (shell-command-to-string (concat "python2 " pth " " dir)))
 	    (message "ok")
@@ -130,9 +159,9 @@
     (when (file-exists-p fil)
       (when (yes-or-no-p (concat "Create project in " fil " ?"))
 	(progn
-	  (message (concat "copying " *stm32-template-folder*))
-	  (copy-directory *stm32-template*
-			  (concat fil "/" *stm32-template-folder*))
+	  (message (concat "copying " stm32-template-folder))
+	  (copy-directory stm32-template
+			  (concat fil "/" stm32-template-folder))
 	  (message "Add to ede projects custom")
 	  (ede-check-project-directory fil)
 	  (message "First generate")
@@ -153,7 +182,7 @@
   
   (with-temp-buffer "*st-util*"
 		    
-		    (async-shell-command *stm32-st-util*
+		    (async-shell-command stm32-st-util-command
 					 "*st-util*"
 					 "*Messages*")
 		    ;;(pop-to-buffer "*st-util*")
@@ -171,7 +200,7 @@
 	(when (file-exists-p pth)
 	  (progn
 	    (message pth)
-	    (gdb (concat *stm32-gdb-start* pth) )))))))
+	    (gdb (concat stm32-gdb-start pth) )))))))
 
 (defun stm32-load-all-projects ()
   "Read all directories from 'ede-project-directories and load project.el."
@@ -190,7 +219,7 @@
   "Open current project in cubeMX or just start application."
   (interactive)
   (let* ((p (ignore-errors(stm32-get-project-root-dir)))
-	     (c *stm32-cubemx*))
+	     (c stm32-cubemx))
 	(if p
 	    (let* ((n (stm32-get-project-name))
 		   (f (concat p n ".ioc")))

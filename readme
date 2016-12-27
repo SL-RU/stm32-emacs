@@ -33,6 +33,12 @@ After CubeMx project regeneration or adding new libraries or new sources you nee
 For normal file & header completion you need to (global-semantic-idle-scheduler-mode 1) in your init file.
 
 
+License:
+This program is distributed under the terms of GNU General
+Public License, version 3 or any later version. See COPYING 
+for details.
+
+
 So in init can be that:
 (require 'stm32)
 (stm32-load-all-projects)
