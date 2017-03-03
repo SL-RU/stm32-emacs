@@ -236,7 +236,7 @@
   (let ((p (get-buffer-process "*st-util*")))
     (when (not p)
       (stm32-start-gdb))
-    (gud-stop-subjob)
+    (gdb-io-interrupt)
     (gud-basic-call "load")
     (gud-basic-call "cont")))
 
