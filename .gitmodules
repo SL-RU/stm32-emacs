@@ -1,3 +1,6 @@
 [submodule "CubeMX2Makefile"]
 	path = CubeMX2Makefile
 	url = https://github.com/SL-RU/CubeMX2Makefile
+[submodule "STM32CubeMX_cmake"]
+	path = STM32CubeMX_cmake
+	url = https://github.com/SL-RU/STM32CubeMX_cmake

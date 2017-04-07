@@ -5,12 +5,13 @@ Video of work: https://youtu.be/M7RBQsq5_lc
 Required:
 1) CEDET
 2) python
-3) st-link https://github.com/texane/stlink
-//4) https://github.com/SL-RU/CubeMX2Makefile
+3) cmake
+4) st-link https://github.com/texane/stlink
+//5) https://github.com/SL-RU/STM32CubeMX_cmake
 
 Install:
 1) clone repository to /.emacs.d/stm32
-2) execute "git submodule update --init" to clone CubeMX2Makefile to /.emacs.d/stm32
+2) execute "git submodule update --init" to clone STM32CubeMX_cmake to /.emacs.d/stm32/STM32CubeMX_cmake
 3) Change paths to yours in stm32.el
 4) add to your init file (require 'stm32)
 
@@ -28,7 +29,7 @@ WORK IN PROGRESS!!!111111
 
 To load that project after restart you need to (stm32-load-project).Or you can add to your init file (stm32-load-all-projects) for automatic loading.
 
-After CubeMx project regeneration or adding new libraries or new sources you need to do stm32-generate-makefile
+After CubeMx project regeneration or adding new libraries or new sources you need to do M-x stm32-cmake-build
 
 For normal file & header completion you need to (global-semantic-idle-scheduler-mode 1) in your init file.
 

@@ -22,8 +22,9 @@
 ;; Required:
 ;; 1) CEDET
 ;; 2) python
-;; 3) st-link https://github.com/texane/stlink
-;; 4) https://github.com/SL-RU/CubeMX2Makefile
+;; 3) cmake
+;; 4) st-link https://github.com/texane/stlink
+;; //4) https://github.com/SL-RU/STM32CubeMX_cmake
 ;;
 ;; 1) (require 'stm32)
 ;; 2) Create STM32CubeMx project and generate it for SW4STM32 toolchain
@@ -40,7 +41,7 @@
 ;;
 ;; For normal file & header completion you need to (global-semantic-idle-scheduler-mode 1) in your init file.
 ;;
-;; After CubeMx project regeneration or adding new libraries or new sources you need to do stm32-generate-makefile
+;; After CubeMx project regeneration or adding new libraries or new sources you need to do stm32-cmake-build
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
@@ -75,17 +76,14 @@
   :group 'stm32
   :type 'string)
 
-(defcustom stm32-template-folder "CubeMX2Makefile"
-  "Project's relative directory with scripts for generating makefiles."
-  :group 'stm32
-  :type 'string)
-
-(defcustom stm32-template-script "CubeMX2Makefile.py"
+(defcustom stm32-template-files `("CubeMX2_cmake.py"
+				 "CMakeLists.txt")
   "Name of script for generating makefiles."
   :group 'stm32
   :type 'string)
 
-(defcustom stm32-template (concat user-emacs-directory "stm32/CubeMX2Makefile")
+(defcustom stm32-template (concat user-emacs-directory
+				  "stm32/STM32CubeMX_cmake/")
   "Directory with scripts for generating makefiles."
   :group 'stm32
   :type 'string)
@@ -126,16 +124,40 @@
     (message (concat "Project name: " name))
     name))
 
-(defun stm32-generate-makefile (&optional path)
-  "Generate or regenerate Makefile from CubeMX generated code.PATH is path to project folder."
+(defun stm32-generate-project (path name)
+  "Generate project.el for EDE in PATH with name NAME."
+  (when path
+    (let ((pth (concat path "project.el")))
+      (when (file-exists-p pth)
+	(delete-file pth))
+      (with-temp-buffer
+	(insert (format
+		 "(ede-add-project-to-global-list
+ (ede-compdb-project \"%s\"
+		     :file \"%s\"
+		     :build-command \"%s\"
+		     :compdb-file \"%s\"))"
+		 name
+		 (concat path (first (last stm32-template-files)))
+		 (concat "cd " path "build; make;")
+		 (concat path "build/compile_commands.json")))
+	(write-file pth)))))
+(defun stm32-cmake-build (&optional path)
+  "Execute cmake and create build directory if not exists.  Use existing project path's or use optional arg PATH."
   (interactive)
   (let ((dir (or path (stm32-get-project-root-dir))))
     (when dir
-      (let ((pth (concat dir stm32-template-folder "/" stm32-template-script)))
-	(when (file-exists-p pth)
-	    (message (shell-command-to-string (concat "python2 " pth " " dir)))
-	    (message "ok")
-	    (stm32-load-project dir))))))
+      (let ((pth (concat dir "build")))
+	(when (not (file-directory-p pth))
+	  (make-directory pth))
+	(when (file-directory-p pth)
+	  (message "cmake project...")
+	  (message (shell-command-to-string
+		    (concat "cd " pth "; cmake ..;")))
+	  (message "and make...")
+	  (shell-command-to-string
+	   (concat "cd " pth "; make;"))
+	  (message "ok"))))))
 
 (defun stm32-load-project (&optional path)
    "Load project.el of current project.PATH is path to project folder."
@@ -155,28 +177,33 @@
 (defun stm32-new-project ()
   "Create new stm32  project from existing code."
   (interactive)
-  (let ((fil (read-directory-name "Select STM32CubeMx directory: ")))
+  (let* ((fil (read-directory-name "Select STM32CubeMx directory:"))
+	 (nam (first (last (s-split "/" fil) 2)))) 
     (when (file-exists-p fil)
-      (when (yes-or-no-p (concat "Create project in " fil " ?"))
+      (when (y-or-n-p (concat "Create project " nam
+				 " in " fil "? "))
 	(progn
-	  (message (concat "copying " stm32-template-folder))
-	  (copy-directory stm32-template
-			  (concat fil "/" stm32-template-folder))
+	  (message (concat "copying " stm32-template))
+	  (dolist (x stm32-template-files)
+	    (copy-file (concat stm32-template x) (concat fil x) t)
+	    (message (concat "copied " (concat fil x))))
+	  (message "First build")
+	  (stm32-cmake-build fil) ;build
+	  (message "Generate project")
+	  (stm32-generate-project fil nam)
 	  (message "Add to ede projects custom")
-	  (ede-check-project-directory fil)
-	  (message "First generate")
-	  (stm32-generate-makefile fil)
+	  (stm32-load-project fil)
 	  (message "done")
-	  (stm32-load-project fil))))))
+	  )))))
 
 (defun stm32-run-st-util ()
   "Run st-util gdb server."
   (interactive)
   (let ((p (get-buffer-process "*st-util*")))
     (when p
-      (if (y-or-n-p "Kill currently running st-util?")
+      (if (y-or-n-p "Kill currently running st-util? ")
 	  (interrupt-process p)
-	(user-error "st-util already running!"))))
+	(user-error "St-util already running!"))))
   
   (sleep-for 1) ;wait for st-util being killed
   
