@@ -100,6 +100,24 @@
   :group 'stm32
   :type 'string)
 
+(defcustom stm32-template-project
+  "(ede-add-project-to-global-list
+ (ede-compdb-project \"%s\"
+                     :name \"%s\"
+		     :file \"%s\"
+		     :build-command \"%s\"
+		     :compdb-file \"%s\"))"
+
+  "Template project.el for generation project.el."
+  :group 'stm32
+  :type 'string)
+
+(defcustom stm32-build-dir
+  "build"
+  "Directory for cmake build."
+  :group 'stm32
+  :type 'string)
+
 
 (defun stm32-get-project ()
   "Return ede project for stm32-get-project-root-dir & stm32-get-project-name."
@@ -107,7 +125,7 @@
 	 (current-dir (file-name-directory fname))
          (prj (ede-current-project current-dir)))
     (if (null prj)
-	(user-error "buffer has no project")
+	(user-error "Buffer has no project")
       prj)))
 
 (defun stm32-get-project-root-dir ()
@@ -132,31 +150,27 @@
 	(delete-file pth))
       (with-temp-buffer
 	(insert (format
-		 "(ede-add-project-to-global-list
- (ede-compdb-project \"%s\"
-		     :file \"%s\"
-		     :build-command \"%s\"
-		     :compdb-file \"%s\"))"
+		 stm32-template-project
+		 name
 		 name
 		 (concat path (first (last stm32-template-files)))
-		 (concat "cd " path "build; make;")
-		 (concat path "build/compile_commands.json")))
+		 (concat "cd " path stm32-build-dir "; make;")
+		 (concat path stm32-build-dir "/compile_commands.json")))
 	(write-file pth)))))
+
 (defun stm32-cmake-build (&optional path)
   "Execute cmake and create build directory if not exists.  Use existing project path's or use optional arg PATH."
   (interactive)
   (let ((dir (or path (stm32-get-project-root-dir))))
     (when dir
-      (let ((pth (concat dir "build")))
+      (let ((pth (concat dir stm32-build-dir)))
 	(when (not (file-directory-p pth))
 	  (make-directory pth))
 	(when (file-directory-p pth)
 	  (message "cmake project...")
-	  (message (shell-command-to-string
-		    (concat "cd " pth "; cmake ..;")))
 	  (message "and make...")
-	  (shell-command-to-string
-	   (concat "cd " pth "; make;"))
+	  (compile
+		    (concat "cd " pth "; cmake ..; make;"))
 	  (message "ok"))))))
 
 (defun stm32-load-project (&optional path)
@@ -191,6 +205,7 @@
 	  (stm32-cmake-build fil) ;build
 	  (message "Generate project")
 	  (stm32-generate-project fil nam)
+	  (ede-check-project-directory fil)
 	  (message "Add to ede projects custom")
 	  (stm32-load-project fil)
 	  (message "done")
@@ -223,7 +238,7 @@
     (when (not p)
       (stm32-run-st-util))
     (when dir
-      (let ((pth (concat dir "build/" name ".elf")))
+      (let ((pth (concat dir stm32-build-dir "/" name ".elf")))
 	(when (file-exists-p pth)
 	  (progn
 	    (message pth)
