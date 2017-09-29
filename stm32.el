@@ -1,23 +1,23 @@
 ;;; stm32.el --- Support for the STM32 mircocontrollers programming
 ;; 
 ;; Filename: stm32.el
-;; Description: 
+;; Description:
 ;; Author: Alexander Lutsai <s.lyra@ya.ru>
-;; Maintainer: 
+;; Maintainer:
 ;; Created: 05 Sep 2016
 ;; Version: 0.01
 ;; Package-Requires: ()
 ;; Last-Updated: 11 Sep 2016
 ;;           By: Alexander Lutsai
 ;;     Update #: 0
-;; URL: 
-;; Doc URL: 
-;; Keywords: 
-;; Compatibility: 
+;; URL:
+;; Doc URL:
+;; Keywords:
+;; Compatibility:
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
-;;; Commentary: 
+;;; Commentary:
 ;;
 ;; Required:
 ;; 1) CEDET
@@ -77,7 +77,8 @@
   :type 'string)
 
 (defcustom stm32-template-files `("CubeMX2_cmake.py"
-				 "CMakeLists.txt")
+				  "CMakeIgnore.txt"
+				  "CMakeLists.txt")
   "Name of script for generating makefiles."
   :group 'stm32
   :type 'string)
@@ -131,7 +132,7 @@
 (defun stm32-get-project-root-dir ()
   "Return path of current project."
   (let* ((prj (stm32-get-project))
-	(dir (ede-project-root-directory prj)))
+	 (dir (ede-project-root-directory prj)))
     (message (concat "Project dir: " dir))
     dir))
 
@@ -168,17 +169,19 @@
 	  (make-directory pth))
 	(when (file-directory-p pth)
 	  (message "cmake project...")
+	  (async-shell-command
+	   (concat "cd " pth "; cmake ..;"))
 	  (message "and make...")
 	  (compile
-		    (concat "cd " pth "; cmake ..; make;"))
+	   (concat "cd " pth "; cmake ..; make;"))
 	  (message "ok"))))))
 
 (defun stm32-load-project (&optional path)
-   "Load project.el of current project.PATH is path to project folder."
-   (interactive)
-   (let ((dir (if path
-		  path
-		(stm32-get-project-root-dir))))
+  "Load project.el of current project.PATH is path to project folder."
+  (interactive)
+  (let ((dir (if path
+		 path
+	       (stm32-get-project-root-dir))))
     (when dir
       (let ((pth (concat dir "/project.el")))
 	(message pth)
@@ -195,7 +198,7 @@
 	 (nam (first (last (s-split "/" fil) 2)))) 
     (when (file-exists-p fil)
       (when (y-or-n-p (concat "Create project " nam
-				 " in " fil "? "))
+			      " in " fil "? "))
 	(progn
 	  (message (concat "copying " stm32-template))
 	  (dolist (x stm32-template-files)
@@ -261,15 +264,15 @@
   "Open current project in cubeMX or just start application."
   (interactive)
   (let* ((p (ignore-errors(stm32-get-project-root-dir)))
-	     (c stm32-cubemx))
-	(if p
-	    (let* ((n (stm32-get-project-name))
-		   (f (concat p n ".ioc")))
-	      (if (file-exists-p f)
-		  (async-shell-command (concat c " " f))
-		(async-shell-command c)))
-	  (async-shell-command c))))
-  
+	 (c stm32-cubemx))
+    (if p
+	(let* ((n (stm32-get-project-name))
+	       (f (concat p n ".ioc")))
+	  (if (file-exists-p f)
+	      (async-shell-command (concat c " " f))
+	    (async-shell-command c)))
+      (async-shell-command c))))
+
 (provide 'stm32)
 
 (defun stm32-flash-to-mcu()
