@@ -2,21 +2,26 @@ Some functions for work with stm32 arm microcontrollers in EMACS.
 
 Video of work: https://youtu.be/M7RBQsq5_lc
 
-Required:
-1) CEDET
+### Required:
+
+1) cmake-ide
 2) python
 3) cmake
-4) st-link https://github.com/texane/stlink
+4) clang
+5) st-link https://github.com/texane/stlink
 //5) https://github.com/SL-RU/STM32CubeMX_cmake
 
-Install:
+### Install:
+
 1) clone repository to /.emacs.d/stm32
 2) execute "git submodule update --init" to clone STM32CubeMX_cmake to /.emacs.d/stm32/STM32CubeMX_cmake
 3) Change paths to yours in stm32.el
 4) add to your init file (require 'stm32)
+5) install cmake-ide and [configure](https://syamajala.github.io/c-ide.html)
 
-Commentary:
-WORK IN PROGRESS!!!111111
+### Commentary:
+
+WORK IN PROGRESS!!!
 1) Create STM32CubeMx project and generate it for SW4STM32
 2) M-x stm32-new-project RET *select CubeMX project path*
 3) open main.c
@@ -27,21 +32,27 @@ WORK IN PROGRESS!!!111111
 8) in gdb) "load" to upload file to MC and "cont" to run.For more see https://github.com/texane/stlink
 9) good luck!
 
-To load that project after restart you need to (stm32-load-project).Or you can add to your init file (stm32-load-all-projects) for automatic loading.
 
 After CubeMx project regeneration or adding new libraries or new sources you need to do M-x stm32-cmake-build
 
-For normal file & header completion you need to (global-semantic-idle-scheduler-mode 1) in your init file.
 
+# IMPORTANT
 
-License:
+In cmsis_gcc.h replace line:
+```
+__ASM volatile ("VMSR fpscr, %0" : : "r" (fpscr) : "vfpcc");
+```
+with lines:
+```
+#ifdef __clang__
+  __builtin_arm_set_fpscr(0xdeadbeef);
+#else
+  __ASM volatile ("VMSR fpscr, %0" : : "r" (fpscr) : "vfpcc");
+#endif
+```
+
+# License:
+
 This program is distributed under the terms of GNU General
 Public License, version 3 or any later version. See COPYING 
 for details.
-
-
-So in init can be that:
-(require 'stm32)
-(stm32-load-all-projects)
-
-(global-semantic-idle-scheduler-mode 1)
