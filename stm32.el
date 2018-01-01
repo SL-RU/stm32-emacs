@@ -79,7 +79,8 @@
 
 (defcustom stm32-template-files `("CubeMX2_cmake.py"
 				  "CMakeLists.txt"
-				  "CMakeSetCompiler.cmake")
+				  "CMakeSetCompiler.cmake"
+				  "CMakeIgnore.txt")
   "Name of script for generating makefiles."
   :group 'stm32
   :type 'string)
