@@ -104,11 +104,23 @@
   :type 'string)
 
 (defcustom stm32-template-project
-  "((nil . ((cmake-ide-build-dir . \"%s\"))))"
+  "((nil . ((cmake-ide-dir . \"build\"))))"
   
   "Template project.el for generation project.el."
   :group 'stm32
   :type 'string)
+
+(defcustom stm32-vfpcc-fix
+  "
+#ifdef __clang__
+  __builtin_arm_set_fpscr(0xdeadbeef);
+#else
+  __ASM volatile (\"VMSR fpscr, %0\" : : \"r\" (fpscr) : \"vfpcc\");
+#endif"
+  "Fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h."
+  :group 'stm32
+  :type 'string)
+
 
 (defcustom stm32-build-dir
   "build"
@@ -149,7 +161,7 @@
       (when (file-exists-p pth)
 	(delete-file pth))
       (with-temp-buffer
-	(insert (concat path stm32-build-dir))
+	(insert stm32-template-project) ;(concat path stm32-build-dir))
 	(write-file pth)))))
 
 (defun stm32-cmake-build (&optional path)
@@ -241,6 +253,11 @@
     (gdb-io-interrupt)
     (gud-basic-call "load")
     (gud-basic-call "cont")))
+
+(defun stm32-insert-vfpcc-fix()
+  "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h."
+  (interactive)
+  (insert stm32-vfpcc-fix))
 
 (provide 'stm32)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
