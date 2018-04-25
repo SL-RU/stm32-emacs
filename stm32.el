@@ -112,11 +112,8 @@
 
 (defcustom stm32-vfpcc-fix
   "
-#ifdef __clang__
-  __builtin_arm_set_fpscr(0xdeadbeef);
-#else
-  __ASM volatile (\"VMSR fpscr, %0\" : : \"r\" (fpscr) : \"vfpcc\");
-#endif"
+#define __get_FPSCR __builtin_arm_get_fpscr
+#define __set_FPSCR __builtin_arm_set_fpscr"
   "Fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h."
   :group 'stm32
   :type 'string)
@@ -255,7 +252,7 @@
     (gud-basic-call "cont")))
 
 (defun stm32-insert-vfpcc-fix()
-  "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h."
+  "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h. Remove __set_FPSCR and __get_FPSCR functions."
   (interactive)
   (insert stm32-vfpcc-fix))
 
