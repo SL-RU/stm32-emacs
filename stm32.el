@@ -132,15 +132,29 @@
 
 (defun stm32-get-project-root-dir ()
   "Return root path of current project."
-  (if (cmake-ide--get-build-dir)
+  (if (cide--locate-project-dir)
       (let
-	  ((dir (substring (cmake-ide--get-build-dir)
-			   0 (- -1 (length stm32-build-dir)))))
+	  ((dir (cide--locate-project-dir)))
 	(if (file-exists-p dir)
 	    (progn (message (concat "Project dir: "
 				    dir))
 		   dir) ;return dir
-	  (message "No root. Build directory must be /build/")))))
+	  (progn
+	    (message "No root. Build directory must be /build/")
+	    (message dir))))))
+
+
+(defun stm32-get-project-build-dir ()
+  "Return path to build dir of current project."
+  (if (stm32-get-project-root-dir)
+      (let ((dir (concat
+		  (stm32-get-project-root-dir)
+		  stm32-build-dir)))
+	(if (file-exists-p dir)
+	    (progn (message (concat "Project build dir: "
+				    dir))
+		   dir) ;return dir
+(message "No build dir")))))
 
 (defun stm32-get-project-name ()
   "Return path of current project."
@@ -164,7 +178,7 @@
 (defun stm32-cmake-build (&optional path)
   "Execute cmake and create build directory if not exists.  Use existing project path's or use optional arg PATH."
   (interactive)
-  (let ((dir (or path (cmake-ide--get-build-dir))))
+  (let ((dir (or path (stm32-get-project-build-dir))))
     (when dir
       (when (not (file-directory-p dir))
 	(make-directory dir))
@@ -216,13 +230,13 @@
 (defun stm32-start-gdb ()
   "Strart gud arm-none-eabi-gdb and connect to st-util."
   (interactive)
-  (let ((dir (cmake-ide--get-build-dir))
+  (let ((dir (stm32-get-project-build-dir))
 	(name (stm32-get-project-name))
 	(p (get-buffer-process "*st-util*")))
     (when (not p)
       (stm32-run-st-util))
     (when dir
-      (let ((pth (concat dir name ".elf")))
+      (let ((pth (concat dir "/" name ".elf")))
 	(when (file-exists-p pth)
 	  (progn
 	    (message pth)
