@@ -350,6 +350,15 @@
                   (message "cmsis_gcc.h already fixed."))))
           (message "No cmsis_gcc.h")))))
 
+(defun stm32-kill-gdb()
+  "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h.  Remove __set_FPSCR and __get_FPSCR functions."
+  (interactive)
+  (kill-process (get-buffer-process "*st-util*"))
+  (kill-process (get-buffer-process "*gud-target extended-remote localhost:4242*"))
+  (sleep-for 1)
+  (kill-buffer "*st-util*")
+  (kill-buffer "*gud-target extended-remote localhost:4242*")
+)
 
 (provide 'stm32)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
