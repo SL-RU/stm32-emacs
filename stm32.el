@@ -110,10 +110,56 @@
   :group 'stm32
   :type 'string)
 
-(defcustom stm32-vfpcc-fix
-  "
+(defcustom stm32-vfpcc-fix-fix
+  "//fix of vfpcc register in old versions of cmsis
 #define __get_FPSCR __builtin_arm_get_fpscr
 #define __set_FPSCR __builtin_arm_set_fpscr"
+  "Fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h."
+  :group 'stm32
+  :type 'string)
+
+(defcustom stm32-vfpcc-fix-source
+  (concat "/**\n"
+          "  \\brief   Get FPSCR\n"
+          "  \\details Returns the current value of the Floating Point Status/Control register.\n"
+          "  \\return               Floating Point Status/Control register value\n"
+          " */\n"
+          "__attribute__( ( always_inline ) ) __STATIC_INLINE uint32_t __get_FPSCR(void)\n"
+          "{\n"
+          "#if (__FPU_PRESENT == 1U) && (__FPU_USED == 1U)\n"
+          "  uint32_t result;\n"
+          "\n"
+          "  /* Empty asm statement works as a scheduling barrier */\n"
+          "  __ASM volatile (\"\");\n"
+          "  __ASM volatile (\"VMRS %0, fpscr\" : \"=r\" (result) );\n"
+          "  __ASM volatile (\"\");\n"
+          "  return(result);\n"
+          "#else\n"
+          "   return(0);\n"
+          "#endif\n"
+          "}\n"
+          "\n"
+          "\n"
+          "/**\n"
+          "  \\brief   Set FPSCR\n"
+          "  \\details Assigns the given value to the Floating Point Status/Control register.\n"
+          "  \\param [in]    fpscr  Floating Point Status/Control value to set\n"
+          " */\n"
+          "__attribute__( ( always_inline ) ) __STATIC_INLINE void __set_FPSCR(uint32_t fpscr)\n"
+          "{\n"
+          "#if (__FPU_PRESENT == 1U) && (__FPU_USED == 1U)\n"
+          "  /* Empty asm statement works as a scheduling barrier */\n"
+          "  __ASM volatile (\"\");\n"
+          "  __ASM volatile (\"VMSR fpscr, %0\" : : \"r\" (fpscr) : \"vfpcc\");\n"
+          "  __ASM volatile (\"\");\n"
+          "#endif\n"
+          "}")
+  "Fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h."
+  :group 'stm32
+  :type 'string)
+
+(defcustom stm32-vfpcc-fix-path
+  "Drivers/CMSIS/Include/cmsis_gcc.h"
   "Fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h."
   :group 'stm32
   :type 'string)
@@ -154,7 +200,7 @@
 	    (progn (message (concat "Project build dir: "
 				    dir))
 		   dir) ;return dir
-(message "No build dir")))))
+          (message "No build dir")))))
 
 (defun stm32-get-project-name ()
   "Return path of current project."
@@ -256,7 +302,7 @@
       (async-shell-command c))))
 
 (defun stm32-flash-to-mcu()
-  "Upload compiled binary to stm32 through gdb"
+  "Upload compiled binary to stm32 through gdb."
   (interactive)
   (let ((p (get-buffer-process "*st-util*")))
     (when (not p)
@@ -265,10 +311,45 @@
     (gud-basic-call "load")
     (gud-basic-call "cont")))
 
-(defun stm32-insert-vfpcc-fix()
-  "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h. Remove __set_FPSCR and __get_FPSCR functions."
+(defun stm32-fix-vfpcc()
+  "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h.  Remove __set_FPSCR and __get_FPSCR functions."
   (interactive)
-  (insert stm32-vfpcc-fix))
+  (if (stm32-get-project-root-dir)
+      (let ((path (concat
+		   (stm32-get-project-root-dir)
+		   stm32-vfpcc-fix-path))
+            (fix-count 0))
+	(if (file-exists-p path)
+	    (progn
+              (message "Fixing old cmsis version")
+              (message (concat "cmsis gcc path: "
+			       path))
+              (with-temp-buffer
+                (insert-file-contents path)
+                (while (search-forward
+                        stm32-vfpcc-fix-source nil t)
+                  (progn
+                    (setq fix-count (+ fix-count 1))))
+                (if (not (eq fix-count 0))
+                    (progn (write-file (concat path ".bak"))
+                           (message "Backup saved."))))
+              (with-temp-buffer
+                (insert-file-contents path)
+                (setq fix-count 0)
+                (while (search-forward
+                        stm32-vfpcc-fix-source nil t)
+                  (progn
+                    (replace-match stm32-vfpcc-fix-fix)
+                    (setq fix-count (+ fix-count 1))
+                    (message "Found!")))
+                (if (not (eq fix-count 0))
+                    (progn
+                      (write-file path)
+                      (message
+                       "cmsis_gcc.h successfully fixed"))
+                  (message "cmsis_gcc.h already fixed."))))
+          (message "No cmsis_gcc.h")))))
+
 
 (provide 'stm32)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

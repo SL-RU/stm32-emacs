@@ -38,18 +38,7 @@ After CubeMx project regeneration or adding new libraries or new sources you nee
 
 # IMPORTANT
 
-In cmsis_gcc.h replace line:
-```
-__ASM volatile ("VMSR fpscr, %0" : : "r" (fpscr) : "vfpcc");
-```
-with lines:
-```
-#ifdef __clang__
-  __builtin_arm_set_fpscr(0xdeadbeef);
-#else
-  __ASM volatile ("VMSR fpscr, %0" : : "r" (fpscr) : "vfpcc");
-#endif
-```
+If you have error in cmsis_gcc.h do ```M-x stm32-fix-vfpcc```. It will change some lines in cmsis_gcc.h and will create backup cmsis_gcc.h.bak.
 
 # License:
 
