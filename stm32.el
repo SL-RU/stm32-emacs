@@ -77,8 +77,7 @@
   :group 'stm32
   :type 'string)
 
-(defcustom stm32-template-files `("CubeMX2_cmake.py"
-				  "CMakeLists.txt"
+(defcustom stm32-template-files `("CMakeLists.txt"
 				  "CMakeSetCompiler.cmake"
 				  "CMakeIgnore.txt")
   "Name of script for generating makefiles."
@@ -104,7 +103,7 @@
   :type 'string)
 
 (defcustom stm32-template-project
-  "((nil . ((cmake-ide-dir . \"build\"))))"
+  "((nil . ((cmake-ide-build-dir . \"build\"))))"
   
   "Template project.el for generation project.el."
   :group 'stm32
