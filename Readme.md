@@ -1,4 +1,4 @@
-#STM32-Emacs
+# STM32-Emacs
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
 
 Some functions for work with stm32 arm microcontrollers in EMACS.
