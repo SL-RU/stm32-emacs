@@ -60,16 +60,16 @@ After this you shold be in the debugger window and you can debug your program, b
 
 You can build or clean and build your projects with the following functions.
 
-- `stm32-cmake-build
+- `stm32-cmake-build`
   this is the equivalent of cleand and build of most IDE's and it recompiles every source file of your project
 
-- `stm32-make-build
+- `stm32-make-build`
   the equivalent of build of most IDE's with this you can compile only the modified source files of your project scince the last compilation, this is useful if you only changed a couple of lines in your project as it makes the compilation proces faster.
 
 ### Closing stm32-debugger
 Once you finished your debugin session you can finish all the windows opened by this plugin with the following function.
 
-`stm32-kill-gdb
+`stm32-kill-gdb`
 
 This will kill the gdb process and the st-link or openocd proces depending on which do you chose to run
 
