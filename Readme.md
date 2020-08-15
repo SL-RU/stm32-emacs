@@ -9,6 +9,7 @@ Video of work: https://youtu.be/M7RBQsq5_lc
 3) cmake
 4) clang
 5) st-link https://github.com/texane/stlink
+6) (optional) openocd
 //5) https://github.com/SL-RU/STM32CubeMX_cmake
 
 ### Install:
@@ -19,9 +20,11 @@ Video of work: https://youtu.be/M7RBQsq5_lc
 4) add to your init file (require 'stm32)
 5) install cmake-ide and [configure](https://syamajala.github.io/c-ide.html)
 
-### Commentary:
+### How to use:
 
 WORK IN PROGRESS!!!
+
+#### GDB and st-link
 1) Create STM32CubeMx project and generate it for SW4STM32
 2) M-x stm32-new-project RET *select CubeMX project path*
 3) open main.c
@@ -31,6 +34,26 @@ WORK IN PROGRESS!!!
 7) start GDB debugger with stm32-start-gdb
 8) in gdb) "load" to upload file to MC and "cont" to run.For more see https://github.com/texane/stlink
 9) good luck!
+
+#### Openocd
+
+Openocd requieres a .cfg file to properly function you need to provide the file in this case it must be
+called board.cfg, and example file is provided (board.cfg) the file needs to be located in your project root.
+
+##### FreeRTOS support
+
+Openocd can
+
+1) Create STM32CubeMx project and generate it for SW4STM32
+2) M-x stm32-new-project RET *select CubeMX project path*
+3) put the board.cfg in your proyect root(an example file named board.cfg is provided in this repo)
+3) open main.c
+4) C-c . C to compile
+5) connect stlink to your PC
+6) stm32-run-openocd to start openocd server
+7) start GDB debugger with stm32-start-openocd-gdb
+
+after this you shold be in the debugger window and you can debug your program, but the default gdb window acts like a terminal and is not very helpful in regards of context and data, so its a good idea to use gdb in many windows mode you can acativate it in your startup config file or with M-x gdb-many-windows
 
 
 After CubeMx project regeneration or adding new libraries or new sources you need to do M-x stm32-cmake-build
@@ -43,5 +66,5 @@ If you have error in cmsis_gcc.h do ```M-x stm32-fix-vfpcc```. It will change so
 # License:
 
 This program is distributed under the terms of GNU General
-Public License, version 3 or any later version. See COPYING 
+Public License, version 3 or any later version. See COPYING
 for details.
