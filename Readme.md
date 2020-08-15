@@ -46,8 +46,7 @@ WORK IN PROGRESS!!!
 
 ### GDB and Openocd
 ***
-Openocd requieres a .cfg file to properly function you need to provide the file in this case it must be
-called board.cfg, and example file is provided (board.cfg) the file needs to be located in your project root.
+Openocd requieres a .cfg file to properly function you need to provide the file in this case it must be called openocd.cfg(you may change it in the custom varible `*stm32-openocd-config-name*`), and example file is provided (openocd.cfg) the file needs to be located in your project root.
 
 1) Create STM32CubeMx project and generate it for SW4STM32
 2) <kbd>M-x</kbd>`stm32-new-project`<kbd>[RET]</kbd> *select CubeMX project path*

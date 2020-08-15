@@ -84,10 +84,15 @@
 
 (defcustom stm32-openocd-gdb-start
   "arm-none-eabi-gdb -iex \"target extended-remote localhost:3333\" -i=mi "
-  "Command to run gdb for gud."
+  "Command to run gdb for gud with openocd remote port."
   :group 'stm32
-  :type 'string
-  )
+  :type 'string)
+
+(defcustom stm32-openocd-config-name
+  "openocd.cfg"
+  "Openocd requieres a .cfg file to properly function you need to provide the file, it must be called *stm32-openocd-config-name* and must be placed in the project's root directory."
+  :group 'stm32
+  :type 'string)
 
 (defcustom stm32-template-files `("CMakeLists.txt"
 				  "CMakeSetCompiler.cmake"
@@ -276,8 +281,7 @@
 	  (stm32-cmake-build (concat fil stm32-build-dir)) ;build
 	  (message "Generate project")
 	  (stm32-generate-project fil)
-	  (message "done")
-	  )))))
+	  (message "done"))))))
 
 (defun stm32-run-st-util ()
   "Run st-util gdb server."
@@ -287,9 +291,7 @@
       (if (y-or-n-p "Kill currently running st-util? ")
 	  (interrupt-process p)
 	(user-error "St-util already running!"))))
-  
   (sleep-for 1) ;wait for st-util being killed
-  
   (with-temp-buffer "*st-util*"
 		    
 		    (async-shell-command stm32-st-util-command
@@ -297,6 +299,7 @@
 					 "*Messages*")
 		    ;;(pop-to-buffer "*st-util*")
 		    ))
+
 (defun stm32-start-gdb ()
   "Strart gud arm-none-eabi-gdb and connect to st-util."
   (interactive)
@@ -312,7 +315,7 @@
 	    (message pth)
 	    (gdb (concat stm32-gdb-start pth))))))))
 
-(defun stm32-start-openocd-gdb()
+(defun stm32-start-openocd-gdb ()
   "Strart gud arm-none-eabi-gdb and connect to openocd."
   (interactive)
   (let ((dir (stm32-get-project-build-dir))
@@ -325,23 +328,22 @@
 	(when (file-exists-p pth)
 	  (progn
 	    (message pth)
-	    (gdb (concat stm32-openocd-gdb-start pth)))))))
-  )
+	    (gdb (concat stm32-openocd-gdb-start pth))))))))
 
-(defun stm32-run-openocd()
-  "Start openocd server"
+(defun stm32-run-openocd ()
+  "Start openocd server."
   (interactive)
   (let ((p (get-buffer-process "*openocd*")))
     (when p
-      (if (y-or-n-p "Kill currently running openocd?")
+      (if (y-or-n-p "Kill currently running openOCD? ")
 	  (interrupt-process p)
-	(user-error "openocd process already running"))))
+	(user-error "Openocd process already running"))))
 
   (sleep-for 1) ;;wait for openocd to being killed
 
   (let* ((r (stm32-get-project-root-dir))
 	 (c stm32-openocd-command)
-	 (f (concat r "board.cfg")))
+	 (f (concat r stm32-openocd-config-name)))
     (if (file-exists-p f)
 	(with-temp-buffer "*openocd*"
 			  (async-shell-command (concat c " -f " f)
@@ -351,9 +353,8 @@
 			      (message "openocd started")
 			    (message "openocd failed to start"))
 			  )
-      (message (concat "File board.cfd not found in:" r)))
-    )
-  )
+      (message (concat "OpenOCD config file "
+                       stm32-openocd-config-name " not found in:" r)))))
 
 (defun stm32-open-cubemx ()
   "Open current project in cubeMX or just start application."
@@ -368,7 +369,7 @@
 	    (async-shell-command c)))
       (async-shell-command c))))
 
-(defun stm32-flash-to-mcu()
+(defun stm32-flash-to-mcu ()
   "Upload compiled binary to stm32 through gdb."
   (interactive)
   (let ((p (get-buffer-process "*st-util*")))
@@ -378,7 +379,7 @@
     (gud-basic-call "load")
     (gud-basic-call "cont")))
 
-(defun stm32-fix-vfpcc()
+(defun stm32-fix-vfpcc ()
   "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h.  Remove __set_FPSCR and __get_FPSCR functions."
   (interactive)
   (if (stm32-get-project-root-dir)
@@ -417,20 +418,28 @@
                   (message "cmsis_gcc.h already fixed."))))
           (message "No cmsis_gcc.h")))))
 
-(defun stm32-kill-gdb()
-  "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h.  Remove __set_FPSCR and __get_FPSCR functions."
+(defun stm32-kill-gdb ()
+  "Kill all st-util, gdb or openocd processes and buffers."
   (interactive)
-  (kill-process (get-buffer-process "*gud-target extended-remote localhost:3333*"))
-  (kill-process (get-buffer-process "*openocd*"))
+  (when (get-buffer-process "*gud-target extended-remote localhost:3333*")
+    (kill-process (get-buffer-process "*gud-target extended-remote localhost:3333*")))
+  (when (get-buffer-process "*openocd*")
+    (kill-process (get-buffer-process "*openocd*")))
+  (when (get-buffer-process "*st-util*")
+    (kill-process (get-buffer-process "*st-util*")))
+  (when (get-buffer-process "*gud-target extended-remote localhost:4242*")
+    (kill-process (get-buffer-process "*gud-target extended-remote localhost:4242*")))
+  
   (sleep-for 1)
-  (kill-buffer "*openocd*")
-  (kill-buffer "*gud-target extended-remote localhost:3333*")
-
-  (kill-process (get-buffer-process "*st-util*"))
-  (kill-process (get-buffer-process "*gud-target extended-remote localhost:4242*"))
-  (sleep-for 1)
-  (kill-buffer "*st-util*")
-  (kill-buffer "*gud-target extended-remote localhost:4242*")
+  
+  (when (get-buffer "*openocd*")
+    (kill-buffer "*openocd*"))
+  (when (get-buffer "*gud-target extended-remote localhost:3333*")
+    (kill-buffer "*gud-target extended-remote localhost:3333*"))
+  (when (get-buffer "*st-util*")
+    (kill-buffer "*st-util*"))
+  (when (get-buffer "*gud-target extended-remote localhost:4242*")
+    (kill-buffer "*gud-target extended-remote localhost:4242*"))
   )
 
 (provide 'stm32)
