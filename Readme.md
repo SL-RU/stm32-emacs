@@ -42,7 +42,7 @@ WORK IN PROGRESS!!!
 8) in gdb) "load" to upload file to MC and "cont" to run.For more see https://github.com/texane/stlink
 9) good luck!
 
-**NOTE**: The step 6 can be omited as the step 7 cheks if `st-util` is running and starts it if it's not running, but it is recommended the first time to run the steps on by one in case of configuration errors, once you are in the debug window you can skip step 6 in the next debugging sessions.
+**NOTE**: The step 6 can be omited as the step 7 cheks if `st-util` is running and starts it if it's not running, but it is recommended the first time to run the steps one by one in case of configuration errors, once you are in the debug window you can skip step 6 in the next debugging sessions.
 
 ### GDB and Openocd
 ***
@@ -59,7 +59,7 @@ called board.cfg, and example file is provided (board.cfg) the file needs to be 
 7) start GDB debugger with <kbd>M-x</kbd>`stm32-start-openocd-gdb`<kbd>[RET]</kbd>
 8) debug your project and good luck!
 
-**NOTE**: The step 6 can be omited as the step 7 cheks if `openocd` is running and starts it if it's not running, but it is recommended the first time to run the steps on by one in case of configuration errors, once you are in the debug window you can skip step 6 in the next debugging sessions.
+**NOTE**: The step 6 can be omited as the step 7 cheks if `openocd` is running and starts it if it's not running, but it is recommended the first time to run the steps one by one in case of configuration errors, once you are in the debug window you can skip step 6 in the next debugging sessions.
 
 #### RTOS support
 ***
