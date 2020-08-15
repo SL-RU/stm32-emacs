@@ -77,6 +77,18 @@
   :group 'stm32
   :type 'string)
 
+(defcustom stm32-openocd-command "openocd"
+  "The command to run openocd."
+  :group 'stm32
+  :type 'string)
+
+(defcustom stm32-openocd-gdb-start
+  "arm-none-eabi-gdb -iex \"target extended-remote localhost:3333\" -i=mi "
+  "Command to run gdb for gud."
+  :group 'stm32
+  :type 'string
+  )
+
 (defcustom stm32-template-files `("CMakeLists.txt"
 				  "CMakeSetCompiler.cmake"
 				  "CMakeIgnore.txt")
@@ -232,6 +244,21 @@
 	 (concat "cd " dir "; cmake ..; make;"))
 	(message "ok")))))
 
+(defun stm32-make-build (&optional path)
+  "Execute make.  Use existing project path's or use optional arg PATH."
+  (interactive)
+  (let ((dir (or path (stm32-get-project-build-dir))))
+    (when dir
+      (when (not (file-directory-p dir))
+	(make-directory dir))
+      (when (file-directory-p dir)
+	(message "cmake project...")
+	(message "and make...")
+	(compile
+	 (concat "cd " dir "; make;"))
+	(message "ok")))))
+
+
 (defun stm32-new-project ()
   "Create new stm32  project from existing code."
   (interactive)
@@ -284,6 +311,49 @@
 	  (progn
 	    (message pth)
 	    (gdb (concat stm32-gdb-start pth))))))))
+
+(defun stm32-start-openocd-gdb()
+  "Strart gud arm-none-eabi-gdb and connect to openocd."
+  (interactive)
+  (let ((dir (stm32-get-project-build-dir))
+	(name (stm32-get-project-name))
+	(p (get-buffer-process "*openocd*")))
+    (when (not p)
+      (stm32-run-openocd))
+    (when dir
+      (let ((pth (concat dir "/" name ".elf")))
+	(when (file-exists-p pth)
+	  (progn
+	    (message pth)
+	    (gdb (concat stm32-openocd-gdb-start pth)))))))
+  )
+
+(defun stm32-run-openocd()
+  "Start openocd server"
+  (interactive)
+  (let ((p (get-buffer-process "*openocd*")))
+    (when p
+      (if (y-or-n-p "Kill currently running openocd?")
+	  (interrupt-process p)
+	(user-error "openocd process already running"))))
+
+  (sleep-for 1) ;;wait for openocd to being killed
+
+  (let* ((r (stm32-get-project-root-dir))
+	 (c stm32-openocd-command)
+	 (f (concat r "board.cfg")))
+    (if (file-exists-p f)
+	(with-temp-buffer "*openocd*"
+			  (async-shell-command (concat c " -f " f)
+					       "*openocd*"
+					       "*Messages*")
+			  (if (process-live-p (get-buffer-process "*openocd*"))
+			      (message "openocd started")
+			    (message "openocd failed to start"))
+			  )
+      (message (concat "File board.cfd not found in:" r)))
+    )
+  )
 
 (defun stm32-open-cubemx ()
   "Open current project in cubeMX or just start application."
@@ -350,12 +420,18 @@
 (defun stm32-kill-gdb()
   "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h.  Remove __set_FPSCR and __get_FPSCR functions."
   (interactive)
+  (kill-process (get-buffer-process "*gud-target extended-remote localhost:3333*"))
+  (kill-process (get-buffer-process "*openocd*"))
+  (sleep-for 1)
+  (kill-buffer "*openocd*")
+  (kill-buffer "*gud-target extended-remote localhost:3333*")
+
   (kill-process (get-buffer-process "*st-util*"))
   (kill-process (get-buffer-process "*gud-target extended-remote localhost:4242*"))
   (sleep-for 1)
   (kill-buffer "*st-util*")
   (kill-buffer "*gud-target extended-remote localhost:4242*")
-)
+  )
 
 (provide 'stm32)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
