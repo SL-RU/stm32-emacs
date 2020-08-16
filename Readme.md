@@ -6,7 +6,7 @@ Some functions for work with stm32 arm microcontrollers in EMACS.
 
 Video of work: https://youtu.be/M7RBQsq5_lc
 
-here is an overview of how it looks
+here is an overview of how it works, the starting and loading process to the microcontroller.
 
 ![Projectile Demo](assets/overview.gif)
 
@@ -76,7 +76,7 @@ If your RTOS is supported you need to do the following steps for enabling debugg
  ```$_TARGETNAME configure -rtos 'RTOSFLAG'```
 - add the symbols definition (if requered [section:21.6](openocd.org/doc/html/GDB-and-OpenOCD.html)) to your proyect. for FreeRTOS users an example file is provided (FreeRTOS-openocd.c)
   - some RTOS require further configurations in the CMakeLists file (FreeRTOS is one of them), for more information check the example file FreeRTOS-openocd.c
-- recompile your proyect and start debugging with Openocd.
+- recompile your proyect and start debugging with Openocd <kbd>M-x</kbd>`stm32-start-openocd-gdb`<kbd>[RET]</kbd>.
 
 
 
