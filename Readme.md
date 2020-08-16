@@ -6,6 +6,11 @@ Some functions for work with stm32 arm microcontrollers in EMACS.
 
 Video of work: https://youtu.be/M7RBQsq5_lc
 
+here is an overview of how it looks
+
+![Projectile Demo](assets/overview.gif)
+
+
 ## Required:
 ***
 - cmake-ide
@@ -62,9 +67,18 @@ Openocd requieres a .cfg file to properly function you need to provide the file 
 
 #### RTOS support
 ***
-If you have a project using an RTOS (FreeRTOS for example) you can debug your project without problems but only openocd [supports](http://openocd.org/doc/html/GDB-and-OpenOCD.html) debugging tasks or threads, this is because openocd searches the tasks of your project and presents them as threads to gdb with this you can wath the stack of every task and also the current state of the task, in order to do this you need to follow the next steps.
+If you have a project using an RTOS (FreeRTOS for example) you can debug your project without problems but only openocd [supports](http://openocd.org/doc/html/GDB-and-OpenOCD.html) debugging tasks or threads, this is because openocd searches the tasks of your project and presents them as threads to gdb with this you can wath the stack of every task and also the current state of the task, but in order to do that you need to check if Openocd supports your particular [RTOS](http://openocd.org/doc/html/GDB-and-OpenOCD.html)(section: 21-6 RTOS Support).
 
-#TODO document the necesary changes of CmakeLists file
+If your RTOS is supported you need to do the following steps for enabling debugging tasks in Openocd:
+
+
+- add the `RTOSFLAG` to the openocd.cfg file this flag varies (the file opencd.cfg contains an example for FreeRTOS users)
+ ```$_TARGETNAME configure -rtos 'RTOSFLAG'```
+- add the symbols definition (if requered [section:21.6](openocd.org/doc/html/GDB-and-OpenOCD.html)) to your proyect. for FreeRTOS users an example file is provided (FreeRTOS-openocd.c)
+  - some RTOS require further configurations in the CMakeLists file (FreeRTOS is one of them), for more information check the example file FreeRTOS-openocd.c
+- recompile your proyect and start debugging with Openocd.
+
+
 
 ### Optional gdb steps
 ***
