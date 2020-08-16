@@ -6,6 +6,11 @@ Some functions for work with stm32 arm microcontrollers in EMACS.
 
 Video of work: https://youtu.be/M7RBQsq5_lc
 
+here is an overview of how it looks
+
+![Projectile Demo](assets/overview.gif)
+
+
 ## Required:
 ***
 - cmake-ide
