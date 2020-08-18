@@ -13,22 +13,22 @@ here is an overview of how it works, the starting and loading process to the mic
 
 ## Required:
 ***
-- cmake-ide
+- irony-mode https://github.com/Sarcasm/irony-mode
 - python
 - cmake
 - clang
-- st-link https://github.com/texane/stlink
 - https://github.com/SL-RU/STM32CubeMX_cmake
+- (optional) st-link https://github.com/texane/stlink
 - (optional) openocd
 
 
 ## Install:
 ***
+0) install and configure irony-mode
 1) clone repository to /.emacs.d/stm32
 2) execute "git submodule update --init" to clone STM32CubeMX_cmake to /.emacs.d/stm32/STM32CubeMX_cmake
 3) Change paths to yours in stm32.el
 4) add to your init file (require 'stm32)
-5) install cmake-ide and [configure](https://syamajala.github.io/c-ide.html)
 
 ## How to use:
 ***
@@ -37,14 +37,14 @@ WORK IN PROGRESS!!!
 
 ### GDB and st-link
 ***  
-1) Create STM32CubeMx project and generate it for SW4STM32
+1) Create STM32CubeMx project and generate it for `Makefile`
 2) <kbd>M-x</kbd>`stm32-new-project`<kbd>[RET]</kbd>*select CubeMX project path*
 3) open main.c
 4) C-c . C or <kbd>M-x</kbd>`stm32-cmake-build`<kbd>[RET]</kbd> to compile
 5) connect stlink to your PC
 6) <kbd>M-x</kbd>`stm32-run-st-util`<kbd>[RET]</kbd> to start gdb server
 7) start GDB debugger with <kbd>M-x</kbd>`stm32-start-gdb`<kbd>[RET]</kbd>
-8) in gdb) "load" to upload file to MC and "cont" to run.For more see https://github.com/texane/stlink
+8) in gdb) "load" to upload file to MC and "cont" to run. Or execute <kbd>M-x</kbd>`stm32-flash-to-mcu`<kbd>[RET]</kbd>. For more see https://github.com/texane/stlink
 9) good luck!
 
 **NOTE**: The step 6 can be omited as the step 7 cheks if `st-util` is running and starts it if it's not running, but it is recommended the first time to run the steps one by one in case of configuration errors, once you are in the debug window you can skip step 6 in the next debugging sessions.
@@ -53,7 +53,7 @@ WORK IN PROGRESS!!!
 ***
 Openocd requieres a .cfg file to properly function you need to provide the file in this case it must be called openocd.cfg(you may change it in the custom varible `*stm32-openocd-config-name*`), and example file is provided (openocd.cfg) the file needs to be located in your project root.
 
-1) Create STM32CubeMx project and generate it for SW4STM32
+1) Create STM32CubeMx project and generate it for `Makefile`
 2) <kbd>M-x</kbd>`stm32-new-project`<kbd>[RET]</kbd> *select CubeMX project path*
 3) put the board.cfg in your project root(an example file named board.cfg is provided in this repo)
 3) open main.c
@@ -61,7 +61,8 @@ Openocd requieres a .cfg file to properly function you need to provide the file 
 5) connect stlink to your PC
 6) <kbd>M-x</kbd>`stm32-run-openocd`<kbd>[RET]</kbd> to start openocd server
 7) start GDB debugger with <kbd>M-x</kbd>`stm32-start-openocd-gdb`<kbd>[RET]</kbd>
-8) debug your project and good luck!
+8) in gdb) "load" to upload file to MC and "cont" to run. Or execute <kbd>M-x</kbd>`stm32-flash-to-mcu`<kbd>[RET]</kbd>.
+9) debug your project and good luck!
 
 **NOTE**: The step 6 can be omited as the step 7 cheks if `openocd` is running and starts it if it's not running, but it is recommended the first time to run the steps one by one in case of configuration errors, once you are in the debug window you can skip step 6 in the next debugging sessions.
 

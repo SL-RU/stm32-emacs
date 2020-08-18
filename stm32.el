@@ -13,34 +13,31 @@
 ;; URL: https://github.com/SL-RU/stm32-emacs
 ;; Doc URL: https://github.com/SL-RU/stm32-emacs
 ;; Keywords: stm32 emacs
-;; Compatibility: emacs cmake-ide
+;; Compatibility: emacs irony-mode
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;;; Commentary:
 ;;
 ;; Required:
-;; 1) cmake-ide
+;; 1) irony-mode https://github.com/Sarcasm/irony-mode
 ;; 2) python
 ;; 3) cmake
 ;; 4) st-link https://github.com/texane/stlink
 ;; 5) clang
 ;; //4) https://github.com/SL-RU/STM32CubeMX_cmake
 ;;
-;; 1) (require 'stm32)
-;; 2) Create STM32CubeMx project and generate it for SW4STM32 toolchain
+;; 1) (require 'irony-mode)
+;; 2) Create STM32CubeMx project and generate it for Makefile toolchain
 ;; 3) M-x stm32-new-project RET *select CubeMX project path*
 ;; 4) open main.c
-;; 5) M-x cmake-ide-compile to compile
+;; 5) M-x stm32-cmake-build to compile
 ;; 6) connect stlink to your PC
 ;; 7) stm32-run-st-util to start gdb server
 ;; 8) start GDB debugger with stm32-start-gdb
 ;; 9) in gdb) "load" to upload file to MC and "cont" to run.For more see https://github.com/texane/stlink
 ;; 5) good luck!
 ;;
-;; To load that project after restart you need to (stm32-load-project).Or you can add to your init file (stm32-load-all-projects) for automatic loading.
-;;
-;; For normal file & header completion you need to (global-semantic-idle-scheduler-mode 1) in your init file.
 ;;
 ;; After CubeMx project regeneration or adding new libraries or new sources you need to do stm32-cmake-build
 ;;
@@ -119,13 +116,6 @@
   :group 'stm32
   :type 'string)
 
-(defcustom stm32-template-project
-  "((nil . ((cmake-ide-build-dir . \"build\"))))"
-  
-  "Template project.el for generation project.el."
-  :group 'stm32
-  :type 'string)
-
 (defcustom stm32-vfpcc-fix-fix
   "//fix of vfpcc register in old versions of cmsis
 #define __get_FPSCR __builtin_arm_get_fpscr
@@ -186,22 +176,23 @@
   :type 'string)
 
 (require 'cl-lib)
-(require 'cmake-ide)
 (require 'gdb-mi)
 (require 'gud)
+(require 'irony)
 
 (defun stm32-get-project-root-dir ()
   "Return root path of current project."
-  (if (cide--locate-project-dir)
+  (if irony--working-directory
       (let
-	  ((dir (cide--locate-project-dir)))
+	  ((dir (substring irony--working-directory 0 (- (length stm32-build-dir)))))
 	(if (file-exists-p dir)
 	    (progn (message (concat "Project dir: "
 				    dir))
 		   dir) ;return dir
 	  (progn
 	    (message "No root. Build directory must be /build/")
-	    (message dir))))))
+	    (message dir)
+            nil)))))
 
 
 (defun stm32-get-project-build-dir ()
@@ -214,7 +205,8 @@
 	    (progn (message (concat "Project build dir: "
 				    dir))
 		   dir) ;return dir
-          (message "No build dir")))))
+          (message "No build dir")
+          nil))))
 
 (defun stm32-get-project-name ()
   "Return path of current project."
@@ -225,21 +217,12 @@
 	name)
     (message "Wrong root directory")))
 
-(defun stm32-generate-project (path)
-  "Generate .dir-locals.el for cmake-ide in PATH to build directory."
-  (when path
-    (let ((pth (concat path ".dir-locals.el")))
-      (when (file-exists-p pth)
-	(delete-file pth))
-      (with-temp-buffer
-	(insert stm32-template-project) ;(concat path stm32-build-dir))
-	(write-file pth)))))
-
 (defun stm32-cmake-build (&optional path)
   "Execute cmake and create build directory if not exists.  Use existing project path's or use optional arg PATH."
   (interactive)
   (let ((dir (or path (stm32-get-project-build-dir))))
-    (when dir
+    (if (not dir)
+        (message "No 'build' directory in your project's root. Run stm32-new-project")
       (when (not (file-directory-p dir))
 	(make-directory dir))
       (when (file-directory-p dir)
@@ -253,7 +236,8 @@
   "Execute make.  Use existing project path's or use optional arg PATH."
   (interactive)
   (let ((dir (or path (stm32-get-project-build-dir))))
-    (when dir
+    (if (not dir)
+        (message "No 'build' directory in your project's root. Run stm32-new-project")
       (when (not (file-directory-p dir))
 	(make-directory dir))
       (when (file-directory-p dir)
@@ -263,24 +247,27 @@
 	 (concat "cd " dir "; make;"))
 	(message "ok")))))
 
-
 (defun stm32-new-project ()
   "Create new stm32  project from existing code."
   (interactive)
   (let* ((fil (read-directory-name "Select STM32CubeMx directory:"))
-	 (nam (car (last (s-split "/" fil) 2))))
+	 (nam (car (last (split-string-and-unquote fil "/") 2))))
     (when (file-exists-p fil)
       (when (y-or-n-p (concat "Create project " nam
 			      " in " fil "? "))
 	(progn
 	  (message (concat "copying " stm32-template))
 	  (dolist (x stm32-template-files)
-	    (copy-file (concat stm32-template x) (concat fil x) t)
-	    (message (concat "copied " (concat fil x))))
-	  (message "First build")
+            (let ((path_teml (concat stm32-template x))
+                  (path_prj (concat fil x)))
+              (when (or (not (file-exists-p path_prj))
+                        (y-or-n-p (concat "File " x
+			                  " already exists. Overwrite "
+                                          path_prj " with template? ")))
+	        (progn (copy-file path_teml path_prj t)
+                       (message (concat "copied " (concat fil x)))))))
+	  (message (concat "First build " fil stm32-build-dir))
 	  (stm32-cmake-build (concat fil stm32-build-dir)) ;build
-	  (message "Generate project")
-	  (stm32-generate-project fil)
 	  (message "done"))))))
 
 (defun stm32-run-st-util ()
@@ -370,14 +357,20 @@
       (async-shell-command c))))
 
 (defun stm32-flash-to-mcu ()
-  "Upload compiled binary to stm32 through gdb."
+  "Upload compiled binary to stm32 through gdb if gdb has been started."
   (interactive)
-  (let ((p (get-buffer-process "*st-util*")))
-    (when (not p)
-      (stm32-start-gdb))
-    (gdb-io-interrupt)
-    (gud-basic-call "load")
-    (gud-basic-call "cont")))
+  (if (or (and (get-buffer "*openocd*")
+               (get-buffer "*gud-target extended-remote localhost:3333*")
+               (get-buffer-process "*openocd*")
+               (get-buffer-process "*gud-target extended-remote localhost:3333*"))
+          (and (get-buffer "*st-util*")
+               (get-buffer "*gud-target extended-remote localhost:4242*")
+               (get-buffer-process "*st-util*")
+               (get-buffer-process "*gud-target extended-remote localhost:4242*")))
+      (progn (gdb-io-interrupt)
+             (gud-basic-call "load")
+             (gud-basic-call "cont"))
+    (message "No gdb has been started")))
 
 (defun stm32-fix-vfpcc ()
   "Insert fix of vfpcc register in old versions of cmsis.  In cmsis_gcc.h.  Remove __set_FPSCR and __get_FPSCR functions."
