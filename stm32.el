@@ -175,6 +175,13 @@
   :group 'stm32
   :type 'string)
 
+(defcustom stm32-build-compilation-database
+  "compile_commands.json"
+  "File in stm32-build-dir with compilation commands.  You need to set(CMAKE_EXPORT_COMPILE_COMMANDS 'ON') to cmake generate it."
+  :group 'stm32
+  :type 'string)
+
+
 (require 'cl-lib)
 (require 'gdb-mi)
 (require 'gud)
@@ -184,7 +191,9 @@
   "Return root path of current project."
   (if irony--working-directory
       (let
-	  ((dir (substring irony--working-directory 0 (- (length stm32-build-dir)))))
+	  ((dir (substring (irony-cdb-json--locate-db) 0 (- (+ (length stm32-build-dir)
+                                                               (length stm32-build-compilation-database)
+                                                               1)))))
 	(if (file-exists-p dir)
 	    (progn (message (concat "Project dir: "
 				    dir))
@@ -420,7 +429,7 @@
     (kill-process (get-buffer-process "*openocd*")))
   (when (get-buffer-process "*st-util*")
     (kill-process (get-buffer-process "*st-util*")))
-  (when (get-buffer-process "*gud-target extended-remote localhost:4242*")
+v  (when (get-buffer-process "*gud-target extended-remote localhost:4242*")
     (kill-process (get-buffer-process "*gud-target extended-remote localhost:4242*")))
   
   (sleep-for 1)
