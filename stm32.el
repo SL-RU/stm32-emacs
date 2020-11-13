@@ -443,7 +443,7 @@
     (kill-process (get-buffer-process "*openocd*")))
   (when (get-buffer-process "*st-util*")
     (kill-process (get-buffer-process "*st-util*")))
-v  (when (get-buffer-process "*gud-target extended-remote localhost:4242*")
+  (when (get-buffer-process "*gud-target extended-remote localhost:4242*")
     (kill-process (get-buffer-process "*gud-target extended-remote localhost:4242*")))
   
   (sleep-for 1)
