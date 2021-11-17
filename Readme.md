@@ -14,19 +14,21 @@ here is an overview of how it works, the starting and loading process to the mic
 ## Required:
 ***
 - irony-mode https://github.com/Sarcasm/irony-mode
+- rtags
 - python
 - cmake
 - clang
 - https://github.com/SL-RU/STM32CubeMX_cmake
 - (optional) st-link https://github.com/texane/stlink
 - (optional) openocd
+- (optional) Ninja
 
 
 ## Install:
 ***
-0) install and configure irony-mode
+0) install and configure irony-mode and rtags
 1) clone repository to /.emacs.d/stm32
-2) execute "git submodule update --init" to clone STM32CubeMX_cmake to /.emacs.d/stm32/STM32CubeMX_cmake
+2) execute "git submodule update --init" to clone STM32CubeMX\_cmake to /.emacs.d/stm32/STM32CubeMX_cmake
 3) Change paths to yours in stm32.el
 4) add to your init file (require 'stm32)
 
@@ -65,6 +67,8 @@ Openocd requieres a .cfg file to properly function you need to provide the file 
 9) debug your project and good luck!
 
 **NOTE**: The step 6 can be omited as the step 7 cheks if `openocd` is running and starts it if it's not running, but it is recommended the first time to run the steps one by one in case of configuration errors, once you are in the debug window you can skip step 6 in the next debugging sessions.
+
+**NOTE**: You can manually select executable to debug using `stm32-run-openocd-gdb-custom-path`
 
 #### RTOS support
 ***
