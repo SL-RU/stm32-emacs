@@ -13,20 +13,11 @@
 ;; URL: https://github.com/SL-RU/stm32-emacs
 ;; Doc URL: https://github.com/SL-RU/stm32-emacs
 ;; Keywords: stm32 emacs
-;; Compatibility: emacs projectile
+;; Compatibility: emacs projectile helm
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;;; Commentary:
-;;
-;; Required:
-;; 2) python
-;; 3) cmake
-;; 4) st-link https://github.com/texane/stlink
-;; 5) clang
-;; //4) https://github.com/SL-RU/STM32CubeMX_cmake
-;;
-;; After CubeMx project regeneration or adding new libraries or new sources you need to do stm32-cmake-build
+;; Required: helm, friendly-shell-command, projectile, cl-lib, s
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
