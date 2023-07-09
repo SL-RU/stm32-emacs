@@ -2,73 +2,44 @@
 ***
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-Some functions for work with stm32 arm microcontrollers in EMACS.
+Some functions for work with ARM microcontrollers in EMACS. All functions works in respect of projectile project and uses HELM for selection.
 
-Video of work: https://youtu.be/M7RBQsq5_lc
-
-here is an overview of how it works, the starting and loading process to the microcontroller.
-
-![Projectile Demo](assets/overview.gif)
+- `stm32-start-gdb-server` starts openocd gdb server with selected config
+- `stm32-start-gdb-elf` starts openocd gdb server with selected config and `arm-none-eabi-gdb` session with selected `.elf`
+- `stm32-flash-to-mcu` executes `load` and `cont` commands in GDB session
+- `stm32-kill-gdb` stops openocd and GDB session
+- `stm32-open-cubemx` open CubeMX with selected `.ioc` or without
 
 
 ## Required:
 ***
-- irony-mode https://github.com/Sarcasm/irony-mode
-- rtags
-- python
-- cmake
-- clang
-- https://github.com/SL-RU/STM32CubeMX_cmake
-- (optional) st-link https://github.com/texane/stlink
-- (optional) openocd
-- (optional) Ninja
+- openocd
+- arm-none-eabi-gdb
+- [helm](https://emacs-helm.github.io/helm/)
+- [projectile](https://docs.projectile.mx/projectile/index.html)
+- [friendly-shell-command](https://github.com/p3r7/friendly-shell)
+- [s.el](https://github.com/magnars/s.el)
+- (optional) CubeMX
 
 
 ## Install:
 ***
-0) install and configure irony-mode and rtags
+0) install and configure helm, projectile and other deps
 1) clone repository to /.emacs.d/stm32
-2) execute "git submodule update --init" to clone STM32CubeMX\_cmake to /.emacs.d/stm32/STM32CubeMX_cmake
-3) Change paths to yours in stm32.el
-4) add to your init file (require 'stm32)
+2) add to your init file (require 'stm32)
+3) customize if needed
+
 
 ## How to use:
 ***
-WORK IN PROGRESS!!!
-`STM32-Emacs` can use two diferent tools for debuggin
+Openocd requieres a `.cfg` file to properly function you need to place `.cfg` in any directory of current project.
 
-### GDB and st-link
-***  
-1) Create STM32CubeMx project and generate it for `Makefile`
-2) <kbd>M-x</kbd>`stm32-new-project`<kbd>[RET]</kbd>*select CubeMX project path*
-3) open main.c
-4) C-c . C or <kbd>M-x</kbd>`stm32-cmake-build`<kbd>[RET]</kbd> to compile
-5) connect stlink to your PC
-6) <kbd>M-x</kbd>`stm32-run-st-util`<kbd>[RET]</kbd> to start gdb server
-7) start GDB debugger with <kbd>M-x</kbd>`stm32-start-gdb`<kbd>[RET]</kbd>
-8) in gdb) "load" to upload file to MC and "cont" to run. Or execute <kbd>M-x</kbd>`stm32-flash-to-mcu`<kbd>[RET]</kbd>. For more see https://github.com/texane/stlink
-9) good luck!
-
-**NOTE**: The step 6 can be omited as the step 7 cheks if `st-util` is running and starts it if it's not running, but it is recommended the first time to run the steps one by one in case of configuration errors, once you are in the debug window you can skip step 6 in the next debugging sessions.
-
-### GDB and Openocd
-***
-Openocd requieres a .cfg file to properly function you need to provide the file in this case it must be called openocd.cfg(you may change it in the custom varible `*stm32-openocd-config-name*`), and example file is provided (openocd.cfg) the file needs to be located in your project root.
-
-1) Create STM32CubeMx project and generate it for `Makefile`
-2) <kbd>M-x</kbd>`stm32-new-project`<kbd>[RET]</kbd> *select CubeMX project path*
-3) put the board.cfg in your project root(an example file named board.cfg is provided in this repo)
-3) open main.c
-4) C-c . C or <kbd>M-x</kbd>`stm32-cmake-build`<kbd>[RET]</kbd> to compile
-5) connect stlink to your PC
+1) Create project and compile `.elf`
+2) <kbd>M-x</kbd>`stm32-start-gdb-eld`<kbd>[RET]</kbd>, select openocd config `.cfg`, then select `.elf`
 6) <kbd>M-x</kbd>`stm32-run-openocd`<kbd>[RET]</kbd> to start openocd server
-7) start GDB debugger with <kbd>M-x</kbd>`stm32-start-openocd-gdb`<kbd>[RET]</kbd>
-8) in gdb) "load" to upload file to MC and "cont" to run. Or execute <kbd>M-x</kbd>`stm32-flash-to-mcu`<kbd>[RET]</kbd>.
+8) in gdb console execute `load` to upload file to MCU and `cont` to run. Or execute <kbd>M-x</kbd>`stm32-flash-to-mcu`<kbd>[RET]</kbd>.
 9) debug your project and good luck!
 
-**NOTE**: The step 6 can be omited as the step 7 cheks if `openocd` is running and starts it if it's not running, but it is recommended the first time to run the steps one by one in case of configuration errors, once you are in the debug window you can skip step 6 in the next debugging sessions.
-
-**NOTE**: You can manually select executable to debug using `stm32-run-openocd-gdb-custom-path`
 
 #### RTOS support
 ***
@@ -89,15 +60,6 @@ If your RTOS is supported you need to do the following steps for enabling debugg
 ***
 Once you are in the debuger window you can load and test your prject, but the default gdb window acts like a terminal and is not very helpful in regards of context and data, so its a good idea to use gdb in many windows mode you can activate it in your startup config file with `(gdb-many-windows 1)` or with <kbd>M-x</kbd> gdb-many-windows <kbd>[RET]</kbd>
 
-### Compilation funcitions
-***
-You can build or clean and build your projects with the following functions.
-
-- <kbd>M-x</kbd>`stm32-cmake-build` <kbd>[RET]</kbd>
-  this is the equivalent of cleand and build of most IDE's and it recompiles every source file of your project
-
-- <kbd>M-x</kbd>`stm32-make-build` <kbd>[RET]</kbd>
-  the equivalent of build of most IDE's with this you can compile only the modified source files of your project scince the last compilation, this is useful if you only changed a couple of lines in your project as it makes the compilation proces faster.
 
 ### Closing stm32-debugger
 ***
@@ -109,10 +71,6 @@ This will kill the gdb process and the st-link or openocd proces depending on wh
 
 After CubeMx project regeneration or adding new libraries or new sources you need to do M-x stm32-cmake-build
 
-
-# IMPORTANT
-***
-If you have error in cmsis_gcc.h do <kbd>M-x</kbd>`M-x stm32-fix-vfpcc`<kbd>[RET]</kbd>. It will change some lines in cmsis_gcc.h and will create backup cmsis_gcc.h.bak.
 
 # License:
 ***

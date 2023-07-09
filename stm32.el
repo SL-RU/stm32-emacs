@@ -17,7 +17,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Required: helm, friendly-shell-command, projectile, cl-lib, s
+;; Required: helm, friendly-shell-command, projectile, s
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -53,7 +53,7 @@
   :type 'string)
 
 (defcustom stm32-gdb-command
-  "arm-none-eabi-gdb -iex \"target extended-remote localhost:3333\" "
+  "arm-none-eabi-gdb -iex \"target extended-remote localhost:3333\" -i=mi "
   "Command to run gdb for gud with openocd remote port."
   :group 'stm32
   :type 'string)
@@ -64,7 +64,6 @@
   :group 'stm32
   :type 'string)
 
-(require 'cl-lib)
 (require 'gdb-mi)
 (require 'gud)
 (require 'friendly-shell-command)
@@ -72,7 +71,9 @@
 (require 'helm)
 (require 's)
 
-(defun stm32-select-file (root filter)
+
+
+(defun stm32--select-file (root filter)
   "Select file using helm in ROOT directory and find by FILTER."
   (let* ((out (s-split
                "\n"
@@ -80,88 +81,110 @@
                 (s-concat "find . -type f -name '" filter "'")
                 :path root)))
          (files (delete "" out)))
-    (when (> (length files) 0)
-      (helm :sources (helm-build-sync-source "test"
-                       :candidates files
-                       :fuzzy-match t)
-            :buffer "*helm find stm32*"
-            :case-fold-search helm-file-name-case-fold-search))))
-
-(defun stm32-start-gdb-server ()
-  "Run gdb server."
-  (interactive)
-  (let ((p (get-buffer-process "*stm32-gdb-server*")))
-    (when p
-      (if (y-or-n-p "Kill currently running stm32-gdb-server? ")
-	  (interrupt-process p)
-	(user-error "Stm32-gdb-server already running!"))))
-  (sleep-for 1) ;wait for process being killed
-  (let ((root (projectile-project-root)))
-    (when 'root
-      (let ((file (stm32-select-file root "*.cfg")))
-        (when file
-          (with-temp-buffer
-            "*stm32-gdb-server*"
-	    (async-shell-command (s-concat stm32-openocd-command " -f " (concat root file))
-				 "*stm32-gdb-server*"
-				 "*Messages*")))))))
-
-(defun stm32-start-gdb-elf ()
-  "Run arm-none-eabi-gdb and select elf."
-  (interactive)
-  (let ((root (projectile-project-root))
-        (p (get-buffer-process "*stm32-gdb-server*")))
-    (when (not p)
-      (stm32-start-gdb-server))
-    (when 'root
-      (let ((file (stm32-select-file root "*.elf")))
-        (when file
-          (gud-gdb (s-concat stm32-gdb-command " " (concat root file))))))))
-
-(defun stm32-flash-to-mcu ()
-  "Upload compiled binary to stm32 through gdb if gdb has been started."
-  (interactive)
-  (if (and (get-buffer "*stm32-gdb-server*")
-               (get-buffer "*gud-target extended-remote localhost:3333*"))
-      (progn (gdb-io-interrupt)
-             (gud-basic-call "load")
-             (gud-basic-call "cont"))
-    (message "No gdb has been started")))
-
-(defun stm32-kill-gdb ()
-  "Kill all gdb or openocd processes and buffers."
-  (interactive)
-  (when (get-buffer-process "*gud-target extended-remote localhost:3333*")
-    (kill-process (get-buffer-process "*gud-target extended-remote localhost:3333*")))
-  (when (get-buffer-process "*stm32-gdb-server*")
-    (kill-process (get-buffer-process "*stm32-gdb-server*")))
-  (sleep-for 1)
-  (when (get-buffer "*stm32-gdb-server*")
-    (kill-buffer "*stm32-gdb-server*"))
-  (when (get-buffer "*gud-target extended-remote localhost:3333*")
-    (kill-buffer "*gud-target extended-remote localhost:3333*")))
-
+    (if (> (length files) 0)
+        (helm :sources (helm-build-sync-source (concat "Select " filter)
+                         :candidates files
+                         :fuzzy-match t)
+              :buffer "*helm find stm32*"
+              :case-fold-search helm-file-name-case-fold-search)
+      (user-error "No matching files"))))
 
 (defun stm32--close-process-buffer (process signal)
   "Close process buffer when PROCESS sends exit SIGNAL."
   (when (memq (process-status process) '(exit signal))
-    (kill-buffer (process-buffer process))
-    (message process "stopped")))
+    (kill-buffer (process-buffer process))))
+
+(defun stm32--start-process-buffer (buffer-name cmd)
+  "Run CMD in the buffer named BUFFER-NAME."
+  (let* ((output-buffer (generate-new-buffer buffer-name))
+         (proc (progn
+                 (message (concat "Running " cmd))
+                 (async-shell-command cmd
+                                      output-buffer
+                                      "*Messages*")
+                 (get-buffer-process output-buffer))))
+    (when (process-live-p proc)
+      (set-process-sentinel proc #'stm32--close-process-buffer))))
+
+(defun stm32--kill-gdb-if-started ()
+  "Kill gdb and openocd if running."
+  (gud-set-buffer)
+  (let ((proc-ocd (get-buffer-process "*stm32-gdb-server*"))
+        (proc-gdb (get-buffer-process gud-comint-buffer)))
+    (when (or proc-ocd proc-gdb)
+      (if (y-or-n-p "Kill currently running gdb? ")
+	  (stm32-kill-gdb)
+	(user-error "GDB already running!")))))
+
+
+
+(defun stm32-start-gdb-server ()
+  "Run gdb server with selected config.  Config files are filtered using '*.cfg'."
+  (interactive)
+  (stm32--kill-gdb-if-started)
+  (let ((root (projectile-project-root))
+        (buffer-name "*stm32-gdb-server*"))
+    (when 'root
+      (let* ((file (stm32--select-file root "*.cfg"))
+             (cmd (concat stm32-openocd-command " -f " (concat root file)))
+             (output-buffer (generate-new-buffer buffer-name)))
+        (when file
+          (async-shell-command cmd
+                               output-buffer
+                               "*Messages*")
+          (let ((proc (get-buffer-process output-buffer)))
+            (when (process-live-p proc)
+              proc)))))))
+
+(defun stm32-start-gdb-elf ()
+  "Run arm-none-eabi-gdb and select elf."
+  (interactive)
+  (stm32--kill-gdb-if-started)
+  (let* ((root (projectile-project-root))
+         (p (get-buffer-process "*stm32-gdb-server*"))
+         (server-started (when (not p)
+                           (stm32-start-gdb-server))))
+    (when (and 'root 'server-started)
+      (let ((file (stm32--select-file root "*.elf")))
+        (when file
+          (save-window-excursion
+            (gdb (s-concat stm32-gdb-command " " (concat root file)))))))))
+
+(defun stm32-flash-to-mcu ()
+  "Upload compiled binary to stm32 through gdb if gdb has been started."
+  (interactive)
+  (gud-set-buffer)
+  (let ((proc (get-buffer-process gud-comint-buffer)))
+    (or proc (error "Current buffer has no process"))
+    (with-current-buffer gud-comint-buffer
+      (save-excursion
+        (interrupt-process proc)
+        (gud-basic-call "load")
+        (gud-basic-call "cont")))))
+
+(defun stm32-kill-gdb ()
+  "Kill all gdb or openocd processes and buffers."
+  (interactive)
+  (gud-set-buffer)
+  (let ((proc (get-buffer-process gud-comint-buffer)))
+    (when proc
+      (kill-process proc)))
+  (when (get-buffer-process "*stm32-gdb-server*")
+    (kill-process (get-buffer-process "*stm32-gdb-server*")))
+  (sleep-for 1)
+  (kill-buffer gud-comint-buffer)
+  (when (get-buffer "*stm32-gdb-server*")
+    (kill-buffer "*stm32-gdb-server*")))
+
+
 
 (defun stm32--start-cubemx (&optional file)
   "Run CubeMX in the buffer and open FILE."
-  (let* ((name (concat " *CubeMX " file "*"))
-         (output-buffer (generate-new-buffer name))
-         (cmd (if 'file
-                  (concat stm32-cubemx " " file)
-                stm32-cubemx))
-         (proc (progn
-                 (message (concat "Running " cmd))
-                 (async-shell-command cmd output-buffer)
-                 (get-buffer-process output-buffer))))
-    (when (process-live-p proc)
-        (set-process-sentinel proc #'stm32--close-process-buffer))))
-
+  (let ((name (concat " *CubeMX " file "*"))
+        (cmd (if 'file
+                 (concat stm32-cubemx " " file)
+               stm32-cubemx)))
+    (stm32--start-process-buffer name cmd)))
 
 (defun stm32-open-cubemx ()
   "Open current project in cubeMX or just start application."
@@ -169,7 +192,7 @@
   (save-window-excursion
     (let ((root (projectile-project-root)))
       (if root
-          (let ((file (stm32-select-file root "*.ioc")))
+          (let ((file (stm32--select-file root "*.ioc")))
             (if file
                 (stm32--start-cubemx (concat root file))
               (stm32--start-cubemx)))
